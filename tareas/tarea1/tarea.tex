@@ -1,0 +1,297 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{float, enumitem, xcolor, geometry}
+\usepackage{graphicx, fancyhdr, fancyvrb}
+\usepackage{array, makecell}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks=true, linkcolor=linkblue, urlcolor=linkblue, citecolor=linkblue]{hyperref}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoDer}{\textit{Tarea 1: Fases de Compilación y expresiones regulares}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ========================================
+% CONFIGURACION DE TABLAS
+% ========================================
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}m{#1}}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{enumerate}[label=\arabic*.]
+
+% ============================================================
+% 1. FASES DE UN COMPILADOR
+% ============================================================
+
+\item
+
+\begin{table}[H]
+\centering
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{tabular}{
+    |C{3.2cm}
+    |C{1.7cm}
+    |C{1.7cm}
+    |C{2.0cm}
+    |C{1.9cm}
+    |C{1.8cm}
+    |C{1.7cm}|
+}
+
+\hline
+
+\multicolumn{7}{|C{14.0cm}|}{\textbf{FASES DE UN COMPILADOR}}
+\\
+\hline
+
+\textbf{FASE} &
+\makecell[c]{\textbf{OTRO}\\\textbf{NOMBRE}} &
+\textbf{FUNCIÓN} &
+\makecell[c]{\textbf{RESULTADO}\\\textbf{O SALIDA}} &
+\makecell[c]{\textbf{TABLA DE}\\\textbf{SÍMBOLOS}} &
+\makecell[c]{\textbf{MANEJO}\\\textbf{DE}\\\textbf{ERRORES}} &
+\textbf{EJEMPLO}
+\\
+\hline
+
+Análisis léxico &
+&
+&
+&
+&
+&
+\\
+\hline
+
+Análisis sintáctico &
+&
+&
+&
+&
+&
+\\
+\hline
+
+Análisis semántico &
+&
+&
+&
+&
+&
+\\
+\hline
+
+Generador de código intermedio &
+&
+&
+&
+&
+&
+\\
+\hline
+
+\makecell[c]{Optimizador de código\\independiente de la máquina} &
+&
+&
+&
+&
+&
+\\
+\hline
+
+Generador de código &
+&
+&
+&
+&
+&
+\\
+\hline
+
+\makecell[c]{Optimizador de código\\independiente de la máquina} &
+&
+&
+&
+&
+&
+\\
+\hline
+
+\end{tabular}
+
+\end{table}
+
+
+% ============================================================
+% 2. GRAMÁTICA Y PROCESO DE COMPILACIÓN
+% ============================================================
+
+\item
+
+Considere la siguiente gramática:
+
+\begin{align*}
+S &\to L = E; \\
+L &\to \text{id}[E] \mid L[E] \\
+E &\to E + E \mid E * E \mid (E) \mid \text{id} \mid \text{num}
+\end{align*}
+
+y la siguiente instrucción:
+
+\[
+\texttt{int a[3], b, i;}
+\]
+
+\[
+\texttt{a[i] = b + 4 * 2;}
+\]
+
+Realiza el proceso de compilación siguiendo todas las fases así como se vio en clase
+(describe detalladamente cada una de ellas).
+
+
+% ============================================================
+% 3. EXPRESIÓN REGULAR
+% ============================================================
+
+\item
+
+Dada la siguiente expresión regular, completa la tabla con $\checkmark$ o $\times$
+y muestra el procedimiento de tu respuesta.
+
+\[
+(a\mid b)^*a(a\mid b)(a\mid b).
+\]
+
+\begin{table}[H]
+\centering
+
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{
+    |C{2.5cm}
+    |C{3cm}
+    |C{8cm}|
+}
+
+\hline
+
+\textbf{CADENA} &
+\makecell[c]{\textbf{¿ACEPTADA?}} &
+\makecell[c]{\textbf{PROCEDIMIENTO O}\\\textbf{JUSTIFICACIÓN}}
+\\
+\hline
+
+\texttt{abaaabb} &
+&
+\\
+\hline
+
+\texttt{babb} &
+&
+\\
+\hline
+
+\texttt{baaab} &
+&
+\\
+\hline
+
+\texttt{aaabaab} &
+&
+\\
+\hline
+
+$\varepsilon$ &
+&
+\\
+\hline
+
+\end{tabular}
+
+\end{table}
+
+
+% ============================================================
+% 4. EXPRESIONES REGULARES
+% ============================================================
+
+\item
+
+Escribe una expresión regular para cada inciso, con el siguiente alfabeto
+$\Sigma = \{a,b,c\}$ que:
+
+\begin{enumerate}[label=\alph*.]
+
+    \item contengan un número \textbf{impar} de letras $a$
+    (considerando desde $0$).
+
+    \item tengan \textbf{longitud impar}.
+
+    \item no contengan la subcadena $bb$.
+
+\end{enumerate}
+
+Da una expresión regular para todas las cadenas de letras en minúsculas
+que contengan las cinco vocales en orden.
+
+
+% ============================================================
+% 5. ALGORITMO DE ELEMENTOS PUNTUADOS
+% ============================================================
+
+\item
+
+Utiliza el algoritmo de elementos puntuados para resolver lo siguiente
+(explica detalladamente el proceso así como se vio en clase):
+
+\begin{enumerate}[label=\alph*.]
+
+    \item
+    \[
+    r \to b(b \mid aa^*b)c
+    \]
+
+    \item
+    \[
+    r \to c(a \mid b)^*
+    \]
+
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}
