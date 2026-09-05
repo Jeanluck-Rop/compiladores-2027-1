@@ -15,9 +15,7 @@ simple_token_type(int c,
     case '+':
         *type = PLUS;
         break;
-        
         /* TODO: agregar los demás símbolos simples de la práctica. */
-        
     case '-':
         *type = MINUS;
         break;
@@ -26,6 +24,15 @@ simple_token_type(int c,
         break;
     case '/':
         *type = SLASH;
+        break;
+    case '=':
+        *type = ASSIGN;
+        break;
+    case '<':
+        *type = LESS;
+        break;
+    case '>':
+        *type = GREATER;
         break;
     case '(':
         *type = LPAREN;
@@ -115,7 +122,6 @@ lexer_scan(FILE *file)
         /* TODO: reemplazar este diagnóstico por un token ERROR */
         char lexeme[2] = {(char)c, '\0'};
         Token token;
-        
         if (!token_init(&token, ERROR, lexeme, token_line, token_column)) {
             fprintf(stderr, "Error: no se pudo reservar memoria.\n");
             return 2;

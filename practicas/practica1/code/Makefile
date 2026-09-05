@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -g
 CPPFLAGS = -Iinclude
 TARGET = minic
-SOURCES = src/main.c src/minic_lexer/token.c src/minic_lexer/lexer.c
+SOURCES = src/main.c src/lexer/token.c src/lexer/lexer.c
 BUILD_DIR = build
 
 # Definimos los directorios y archivos objetivos para realizar los test
