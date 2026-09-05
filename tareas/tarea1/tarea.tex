@@ -7,10 +7,27 @@
 \usepackage{float, enumitem, xcolor, geometry}
 \usepackage{graphicx, fancyhdr, fancyvrb}
 \usepackage{array, makecell}
+\usepackage{forest}
 \usepackage[normalem]{ulem}
 \usepackage[colorlinks=true, linkcolor=linkblue, urlcolor=linkblue, citecolor=linkblue]{hyperref}
 
+
 \geometry{margin=2cm, top=2cm, bottom=2cm}
+
+\newcommand{\pred}{$\rightarrow$}
+\newcommand{\asig}{$\leftarrow$}
+
+% ========================================
+% COLORES
+% ========================================
+\definecolor{green_checkmark}{HTML}{07E314}
+\definecolor{red_cross}{HTML}{ED4728}
+
+% ========================================
+% COMANDOS PARA MARCADORES
+% ========================================
+\newcommand{\greencheck}{\textcolor{green_checkmark}{$\checkmark$}}
+\newcommand{\redcross}{\textcolor{red_cross}{$\times$}}
 
 % ========================================
 % CONSTANTES DEL ENCABEZADO
@@ -54,127 +71,33 @@
 % 1. FASES DE UN COMPILADOR
 % ============================================================
 
-\item
+\item Con lo visto en clase y \textbf{con tus propias palabras}, completa la siguiente tabla.
+Puedes ayudarte también de alguna fuente académica (libros, artículos); de ser así, agregar referencias.
 
-\begin{table}[H]
-\centering
 
-\renewcommand{\arraystretch}{1.4}
 
-\begin{tabular}{
-    |C{3.2cm}
-    |C{1.7cm}
-    |C{1.7cm}
-    |C{2.0cm}
-    |C{1.9cm}
-    |C{1.8cm}
-    |C{1.7cm}|
-}
 
-\hline
 
-\multicolumn{7}{|C{14.0cm}|}{\textbf{FASES DE UN COMPILADOR}}
-\\
-\hline
 
-\textbf{FASE} &
-\makecell[c]{\textbf{OTRO}\\\textbf{NOMBRE}} &
-\textbf{FUNCIÓN} &
-\makecell[c]{\textbf{RESULTADO}\\\textbf{O SALIDA}} &
-\makecell[c]{\textbf{TABLA DE}\\\textbf{SÍMBOLOS}} &
-\makecell[c]{\textbf{MANEJO}\\\textbf{DE}\\\textbf{ERRORES}} &
-\textbf{EJEMPLO}
-\\
-\hline
-
-Análisis léxico &
-&
-&
-&
-&
-&
-\\
-\hline
-
-Análisis sintáctico &
-&
-&
-&
-&
-&
-\\
-\hline
-
-Análisis semántico &
-&
-&
-&
-&
-&
-\\
-\hline
-
-Generador de código intermedio &
-&
-&
-&
-&
-&
-\\
-\hline
-
-\makecell[c]{Optimizador de código\\independiente de la máquina} &
-&
-&
-&
-&
-&
-\\
-\hline
-
-Generador de código &
-&
-&
-&
-&
-&
-\\
-\hline
-
-\makecell[c]{Optimizador de código\\independiente de la máquina} &
-&
-&
-&
-&
-&
-\\
-\hline
-
-\end{tabular}
-
-\end{table}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ============================================================
 % 2. GRAMÁTICA Y PROCESO DE COMPILACIÓN
 % ============================================================
 
-\item
-
-Considere la siguiente gramática:
-
+\item Considere la siguiente gramática:
 \begin{align*}
-S &\to L = E; \\
-L &\to \text{id}[E] \mid L[E] \\
-E &\to E + E \mid E * E \mid (E) \mid \text{id} \mid \text{num}
+  \texttt{S} &\to \texttt{L = E;} \\
+  \texttt{L} &\to \texttt{id[E]} \mid \texttt{L[E]} \\
+  \texttt{E} &\to \texttt{E + E} \mid \texttt{E * E} \mid \texttt{(E)} \mid \texttt{id} \mid \texttt{num}
 \end{align*}
 
 y la siguiente instrucción:
-
 \[
 \texttt{int a[3], b, i;}
 \]
-
 \[
 \texttt{a[i] = b + 4 * 2;}
 \]
@@ -182,15 +105,119 @@ y la siguiente instrucción:
 Realiza el proceso de compilación siguiendo todas las fases así como se vio en clase
 (describe detalladamente cada una de ellas).
 
+\subsubsection*{Tokens Generados:}
+
+\[
+\begin{aligned}
+  \langle \texttt{id}&, \, \texttt{"a"} \rangle\\
+  \langle \texttt{corA}&, \, \texttt{"["} \rangle\\
+  \langle \texttt{id}&, \, \texttt{"i"} \rangle\\
+  \langle \texttt{corC}&, \, \texttt{"]"} \rangle\\
+  \langle \texttt{asig}&, \, \texttt{"="} \rangle\\
+  \langle \texttt{id}&, \, \texttt{"b"} \rangle\\
+  \langle \texttt{sum}&, \, \texttt{"+"} \rangle\\
+  \langle \texttt{num}&, \, \texttt{"4"} \rangle\\
+  \langle \texttt{mul}&, \, \texttt{"*"} \rangle\\
+  \langle \texttt{num}&, \, \texttt{"2"} \rangle\\
+  \langle \texttt{finInstr}&, \texttt{";"} \rangle\\
+\end{aligned}
+\]
+  
+\subsubsection*{Tabla de Símbolos Generada:}
+Suponemos que \texttt{int: 4 bytes}:
+\[
+\texttt{a[3] => 3} \times \texttt{4 = 12}
+\qquad
+\texttt{b, j => 4 bytes cada uno.}
+\]
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{ccccc}
+    Posición & ID & Tipo & Total Bytes & Dirección\\\hline
+    1 & a & \texttt{int} & 12 & 0\\\hline
+    1 & b & \texttt{int} & 4 & 12\\\hline
+    1 & c & \texttt{int} & 4 & 16\\\hline
+  \end{tabular}
+\end{table}
+
+\subsubsection*{Árbol de Sintaxis Abstracta Generado:}
+
+\[
+\begin{forest}
+  for tree={
+    math content,
+    edge={-},
+    s sep=10pt,
+    l sep=12pt,
+    align=center,
+  }
+  [a[i] = b + 4 * 2;
+    [\text{\texttt{L = E;}}
+      [a[i]
+        [\text{\texttt{id[E]}}
+          [a
+            [\text{\texttt{id}}]
+          ]
+          [i
+            [\text{\texttt{id}}]
+          ]
+        ]
+      ]
+      [b + 4 * 2
+        [\text{\texttt{E + E}}
+          [b
+            [\text{\texttt{id}}]
+          ]
+          [4 * 2
+            [\text{\texttt{E * E}}
+              [4
+                [\text{\texttt{num}}]
+              ]
+              [2
+                [\text{\texttt{num}}]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+\end{forest}
+\]
+
+\subsubsection*{Código Intermedio Generado:}
+
+\begin{Verbatim}
+a[i] = b + 4 * 2  
+t1 = 4 * 2        //Aislamos la multiplicacion
+t2 = b + t1       //Aislamos la suma
+t3 = i * 4        //Calculamos offset en memoria
+a[t2] = t1        //Asignamos la dir base de a + offset
+\end{Verbatim}
+
+\subsubsection*{Código Intermedio Optimizado:}
+
+\begin{Verbatim}
+a[i] = b + 4 * 2  
+t1 = b + 8        //El compilador al ver los dos numeros
+                  // fijos, los evalua de antemano
+t2 = i << 2       //Multiplicar por potencias de dos
+                  // es identico a recorrer bit a la izq
+a[t2] = t1
+\end{Verbatim}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ============================================================
 % 3. EXPRESIÓN REGULAR
 % ============================================================
 
-\item
-
-Dada la siguiente expresión regular, completa la tabla con $\checkmark$ o $\times$
-y muestra el procedimiento de tu respuesta.
+\item Dada la siguiente expresión regular, completa la tabla con \greencheck o \redcross y muestra el
+  procedimiento de tu respuesta.
 
 \[
 (a\mid b)^*a(a\mid b)(a\mid b).
@@ -201,42 +228,56 @@ y muestra el procedimiento de tu respuesta.
 
 \renewcommand{\arraystretch}{1.5}
 
+\hspace*{-0.2cm}
 \begin{tabular}{
     |C{2.5cm}
-    |C{3cm}
-    |C{8cm}|
+    |C{3.3cm}
+    |C{10cm}|
 }
 
 \hline
 
 \textbf{CADENA} &
-\makecell[c]{\textbf{¿ACEPTADA?}} &
-\makecell[c]{\textbf{PROCEDIMIENTO O}\\\textbf{JUSTIFICACIÓN}}
+\textbf{¿ACEPTADA?} &
+\textbf{PROCEDIMIENTO O JUSTIFICACIÓN}
 \\
 \hline
 
-\texttt{abaaabb} &
-&
+\texttt{abaaabb} & \redcross
+& No hace falta comprobar toda la cadena, basta con notar que los primeros dos caracteres son \texttt{a} y
+\texttt{b}, no son posibles con esa expresión regular, ya que $a \mid b^*$, solo genera cadenas de uno o más
+símbolos $a$, o una o más símbolos $b$, o la cadena vacía y solo esos. Lo que hace que no sea posible que la
+regex genere la cadena $ab$ como prefijo. Por otro lado, si ignoramos esta primera sección, la longitud de la
+cadena que estamos evaluando excede los caracteres que pueden generarse con el resto de expresión, puesto que
+$a(a \mid b)(a \mid b)$ genera subcadenas de tres caracteres, no de los siete que tiene la cadena dada.
 \\
 \hline
 
-\texttt{babb} &
-&
+\texttt{babb} & \greencheck
+& Esta cadena sí es aceptada, ya que la primera $b$ proviene de la $b$ repetida una sola vez de
+$a \mid b^*$ y el resto de la cadena $abb$, se genera con $a(a \mid b)(a \mid b)$ elegiendo el
+caracter $b$ en ambas alternancias.
 \\
 \hline
 
-\texttt{baaab} &
-&
+\texttt{baaaab} & \redcross
+& Como se puede ver, la cadena cuenta con 4 letras $a$, después de un caracter $b$, y como anteriormente
+mencionamos, el final de la expresión solo puede generar cadenas de a lo más tres caracteres, por lo que generar
+cuatro $a$'s después de una $b$, no es posible para esta regex.
 \\
 \hline
 
-\texttt{aaabaab} &
-&
+\texttt{aaabaab} & \redcross
+& No es aceptada ya que, si en $(a \mid b)^*$, lo usamos para generar los primeros dos símbolos $a$ y el tecero
+con el $a$ concatenado en medio de la regex, ya no es posible generar el resto de la cadena $baab$, ya que con
+los componentes $(a \mid b)(a \mid b)$, no podemos generar esos cuatro símbolos, solo dos.
 \\
 \hline
 
-$\varepsilon$ &
-&
+$\varepsilon$ & \redcross
+& No es posible que la cadena vacía sea aceptada por esta regex, ya que el símbolo $a$ después de $(a \mid b)^*$
+nos restringe a que mínimo tenga un caracter. Y de nuevo, como anteriormente mencionamos $(a \mid b)(a \mid b)$
+obliga a que se eliga alguno de los dos símbolo en ambas opciones, por lo que la regex mínimo genera cadenas de tres caracteres, nunca una vacía.
 \\
 \hline
 
@@ -245,51 +286,318 @@ $\varepsilon$ &
 \end{table}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % ============================================================
 % 4. EXPRESIONES REGULARES
 % ============================================================
 
-\item
-
-Escribe una expresión regular para cada inciso, con el siguiente alfabeto
-$\Sigma = \{a,b,c\}$ que:
+\item Escribe una expresión regular para cada inciso, con el siguiente alfabeto $\Sigma = \{a,b,c\}$ que:
 
 \begin{enumerate}[label=\alph*.]
 
-    \item contengan un número \textbf{impar} de letras $a$
-    (considerando desde $0$).
+\item Contengan un número \textbf{impar} de letras $a$ (considerando desde $0$):
 
-    \item tengan \textbf{longitud impar}.
+  \[
+  ((ab \mid ca)(aa \mid bb \mid cc))^*
+  \]
+  
+\item Tengan \textbf{longitud impar}:
 
-    \item no contengan la subcadena $bb$.
-
+  \[
+  (b \mid a \mid c)(cc \mid aa \mid bb)^*
+  \]
+        
+\item No contengan la subcadena $bb$:
+  
+  \[
+  (ba \mid bc)^*(ab \mid cb)^+
+  \]
+  
 \end{enumerate}
 
-Da una expresión regular para todas las cadenas de letras en minúsculas
-que contengan las cinco vocales en orden.
+Da una expresión regular para todas las cadenas de letras en minúsculas que contengan las cinco vocales en orden.
 
+\[
+(a \mid b \mid ... \mid y \mid z)^* a (a \mid b \mid ... \mid y \mid z)^* e (a \mid b \mid ... \mid y \mid z)^*
+i (a \mid b \mid ... \mid y \mid z)^*
+\]
+\[
+o (a \mid b \mid ... \mid y \mid z)^* u (a \mid b \mid ... \mid y \mid z)^*
+\]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ============================================================
 % 5. ALGORITMO DE ELEMENTOS PUNTUADOS
 % ============================================================
 
-\item
-
-Utiliza el algoritmo de elementos puntuados para resolver lo siguiente
-(explica detalladamente el proceso así como se vio en clase):
+\item Utiliza el algoritmo de elementos puntuados para resolver lo siguiente (explica detalladamente el proceso
+  así como se vio en clase):
 
 \begin{enumerate}[label=\alph*.]
 
-    \item
-    \[
-    r \to b(b \mid aa^*b)c
-    \]
+\item r $\to$ b(b $\mid$ aa$^*$b)c
 
-    \item
-    \[
-    r \to c(a \mid b)^*
-    \]
+  \textbf{Cerradua}\big(\{ r $\to$ $\bullet$ b(b $\mid$ aa$^*$b)c\}\big) \big\} No hace nada pues $b$, es símbolo
+  básico.
 
+  \medskip
+
+  \textbf{Estado:}
+  \[
+  q_0 = \{\, r \to \bullet b(b \mid aa^*b)c \,\}
+  \]
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_0, b) =
+    \{\,
+    r &\to b\bullet(b \mid aa^*b)c \\
+    r &\to b(\bullet b \mid aa^*b)c \\
+    r &\to b(b \mid \bullet aa^*b)c
+    \,\} = q_1 \\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_0, a) &= \varnothing\\
+    \texttt{goto}(q_0, c) &= \varnothing
+  \end{aligned}
+  \]
+
+  \medskip
+  
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    q_1 =
+    \{\,
+    r &\to b\bullet(b \mid aa^*b)c \\
+    r &\to b(\bullet b \mid aa^*b)c \\
+    r &\to b(b \mid \bullet aa^*b)c
+    \,\}
+  \end{aligned}
+  \]
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, b) =
+    \{\,
+    r &\to b(\bullet b \mid aa^*b)c \\
+    r &\to b(b \bullet \mid aa^*b)c \\
+    r &\to b(b \mid aa^*b)\bullet c
+    \,\} = q_2\\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, a) =
+    \{\,
+    r &\to b (b \mid \bullet aa^*b)c \\
+    r &\to b (b \mid a \bullet a^*b)c \\
+    r &\to b (b \mid aa^* \bullet b)c
+    \,\} = q_3 \\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, c) = \varnothing
+  \end{aligned}
+  \]
+
+  \medskip
+  
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    q_3 =
+    \{\,
+    r &\to b (b \mid a \bullet a^*b)c \\
+    r &\to b (b \mid aa^* \bullet b)c 
+    \,\}
+  \end{aligned}
+  \]
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_3, a) =
+    \{\,
+    r &\to b (b \mid a \bullet a^*b)c \\
+    r &\to b (b \mid aa^* \bullet b)c 
+    \,\} = q_3
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_3, b) =
+    \{\,
+    r &\to b (b \mid aa^*b \bullet )c \\
+    r &\to b (b \mid aa^*b)\bullet c
+    \,\} = q_2 \\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_3, c) = \varnothing
+  \end{aligned}
+  \]
+  
+  \medskip
+  
+  \textbf{Estado:}
+  \[
+    \begin{aligned}
+      q_2 =
+      \{\,
+      r &\to b(b \bullet \mid aa^* b)c\\
+      r &\to b(b \mid aa^*b\bullet)c\\
+      r &\to b(b \mid aa^*b)\bullet c
+      \,\}
+    \end{aligned}
+  \]
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_2, c) =
+    \{\,
+    r &\to b(b \mid aa^*b)\bullet c\\
+    r &\to b(b \mid aa^*b)c \bullet
+    \,\} = q_4\\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_2, b) &= \varnothing\\
+    \texttt{goto}(q_2, a) &= \varnothing
+  \end{aligned}
+  \]
+
+  \medskip
+  
+  \textbf{Estado:}
+  \[
+  q_4 = \{\, r \to b(b \mid aa^*b)c \bullet \,\}
+  \]
+  Estado de aceptación.
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_4, a) &= \varnothing\\
+    \texttt{goto}(q_4, b) &= \varnothing\\
+    \texttt{goto}(q_4, c) &= \varnothing
+  \end{aligned}
+  \]
+
+  \medskip
+  
+  \textbf{Tabla de transiciones:}
+  \[
+  \begin{array}{c|ccc}
+    & b & a & c \\ \hline
+    \rightarrow q_0 & q_1 & \varnothing & \varnothing \\
+    q_1 & q_2 & q_3 & \varnothing \\
+    q_2 & \varnothing & \varnothing & q_4 \\
+    q_3 & q_2 & q_3 & \varnothing \\
+    {}^*q_4 & \varnothing & \varnothing & \varnothing \\
+  \end{array}
+  \]
+
+\newpage
+
+\item r $\to$ c(a $\mid$ b)$^*$
+
+  \textbf{Cerradua}\big(\{ r $\to$ $\bullet$ c(a $\mid$ b)$^*$ \}\big) \big\} No hace nada pues $c$, es símbolo
+  básico.
+
+  \medskip
+
+  \textbf{Estado:}
+  \[
+  q_0 = \{\, r \to \bullet c(a \mid b)^* \,\}
+  \]
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_0, c) =
+    \{\,
+    r &\to c\bullet(a \mid b)^* \\
+    r &\to c(\bullet a \mid b)^* \\
+    r &\to c(a \mid \bullet b)^* \\
+    r &\to c(a \mid b)^*\bullet
+    \,\} = q_1
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_0, a) &= \varnothing \\
+    \texttt{goto}(q_0, b) &= \varnothing
+  \end{aligned}
+  \]
+
+  \medskip
+
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    q_1 =
+    \{\,
+    r &\to c(\bullet a \mid b)^* \\
+    r &\to c(a \mid \bullet b)^* \\
+    r &\to c(a \mid b)^*\bullet
+    \,\}
+  \end{aligned}
+  \]
+  Estado de aceptación.
+
+  \textbf{Transiciones:}
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, c) = \varnothing
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, a) =
+    \{\,
+    r &\to c(\bullet a \mid b)^* \\
+    r &\to c(a \bullet \mid b)^* \\
+    r &\to c(a \mid b)^*\bullet
+    \,\} = q_1 \\
+  \end{aligned}
+  \]
+  \[
+  \begin{aligned}
+    \texttt{goto}(q_1, b) =
+    \{\,
+    r &\to c(a \mid \bullet b)^* \\
+    r &\to c(a \mid b \bullet)^* \\
+    r &\to c(a \mid b)^*\bullet
+    \,\} = q_1\\
+  \end{aligned}
+  \]
+
+  \medskip
+  
+  \textbf{Tabla de transiciones:}
+  \[
+  \begin{array}{c|ccc}
+    & c & a & b \\ \hline
+    \rightarrow q_0 & q_1 & \varnothing & \varnothing \\
+                {}^*q_1 & \varnothing & q_1 & q_1 \\
+  \end{array}
+  \]
+  
 \end{enumerate}
 
 \end{enumerate}
