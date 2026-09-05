@@ -1,0 +1,221 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float, enumitem, array, listings}
+\usepackage{geometry, amsmath, amssymb, amsthm}
+\usepackage{graphicx, xcolor, fancyhdr, fancyvrb}
+\usepackage[normalem]{ulem}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoCen}{Práctica 1}
+\newcommand{\encabezadoDer}{\textit{Infraestructura básica del analizador léxico}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[C]{\encabezadoCen}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ========================================
+% CONFIGURACION Y COLORES LSTLISTINGS
+% ========================================
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{links}{HTML}{0D1894}
+
+\definecolor{backcolour}{rgb}{0.93, 0.93, 0.93}
+\definecolor{codegreen}{rgb}{0, 0.6, 0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0, 0.82}
+\definecolor{keywordcolor}{rgb}{0.5, 0.0, 0.5}
+\definecolor{codeorg}{HTML}{DB9400}
+\definecolor{linkblue}{HTML}{1A167A}
+\definecolor{redcolor}{HTML}{7A1805}
+\definecolor{greencolor}{HTML}{0E8F10}
+\definecolor{greeblucolor}{HTML}{0E6657}
+\definecolor{orgcolor}{HTML}{B86D00}
+\definecolor{highlightyellow}{HTML}{FFF176}
+\definecolor{boxgray}{HTML}{F2F2F2}
+\definecolor{borderblue}{HTML}{1A167A}
+
+% ========================================
+% CONFIGURACION LENGUAJES
+% ========================================
+\lstdefinestyle{modernc}{
+    language=C,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=tttt,
+    emph={int,uint32_t,char,double,float,unsigned,void,bool,struct,size_t,
+          Room, Client, pthread_mutex_t, NULL},
+    emphstyle=\color{codeorg}\bfseries
+}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Objetivo}
+% ================================================================
+
+\begin{quote}
+  Explicar brevemente qué se construyó y qué parte del compilador representa.
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Descripción de la solución}
+% ================================================================
+
+\begin{quote}
+  - organización de módulos;\\
+  - representación de tokens;\\
+  - estrategia para recorrer el archivo;\\
+  - seguimiento de línea y columna;\\
+  - manejo de lexemas y memoria;\\
+  - tratamiento de errores y final del archivo.\\
+\end{quote}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{simple\_toke\_type}, símbolos simples.}]
+  /* TODO: agregar los demás símbolos simples de la práctica. */
+\end{lstlisting}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{advance\_position}, seguimiento de línea y columna.}]
+  /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
+\end{lstlisting}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, reconocimiento de números enteros.}]
+  /* TODO: reconocer enteros. */
+\end{lstlisting}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
+  /* TODO: reemplazar este diagnóstico por un token ERROR. */
+\end{lstlisting}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
+  /* TODO: generar TOKEN_EOF con la posición actual. */
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Resultados}
+% ================================================================
+
+\begin{quote}
+  - casos probados;\\
+  - resultados relevantes;\\
+  - evidencia suficiente para justificar que el programa cumple el alcance.\\
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Problemas encontrados}
+% ================================================================
+
+\begin{quote}
+  Describir los problemas relevantes encontrados durante el desarrollo y cómo fueron resueltos o qué limitaciones permanecen.
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Conclusiones}
+% ================================================================
+
+\begin{quote}
+  Reflexionar sobre el resultado, lo aprendido y la forma en que esta implementación podrá extenderse en la Práctica 2.
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Uso de herramientas de Inteligencia Artificial}
+% ================================================================
+
+\begin{quote}
+  Cuando se hayan utilizado, indicar:\\
+
+  - herramienta;\\
+  - propósito;\\
+  - prompt utilizado;\\
+  - tipo de apoyo recibido;\\
+  - forma en que el resultado fue revisado o adaptado.\\
+
+  Si no se utilizaron, indicarlo explícitamente.\\
+\end{quote}
+
+No se utilizo IA para realizacion de esta practica mas que para la configuracion del Makefile. La mayoria de su contenido fue reutilizado de lo visto en clase de laboratorio con el ayudante, ademas de algunos ajustes por nuestra parte. En el archivo se indica exactamente donde fue llevado a cabo su utilizacion.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Referencias}
+% ================================================================
+
+\begin{quote}
+  Registrar libros, documentación, sitios o código externo consultado de manera sustantiva.
+\end{quote}
+
+\begin{thebibliography}{99}
+\bibitem{ref1}
+  ppreference.com. (n.d.). C language. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+
+\bibitem{ref1}
+  ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+  
+\end{thebibliography}
+
+\end{document}
