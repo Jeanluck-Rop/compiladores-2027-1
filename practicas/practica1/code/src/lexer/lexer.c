@@ -1,5 +1,6 @@
 #include "lexer/lexer.h"
 
+#include <ctype.h>
 #include <stdio.h>
 
 /* */
@@ -60,7 +61,8 @@ is_ignored_space(int c)
 static void
 advance_position(int c,
                  size_t *line,
-                 size_t *column)
+                 size_t *column,
+                 int *last_was_cr)
 {
     /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
     if (c == 'r'){
@@ -86,7 +88,7 @@ lexer_scan(FILE *file)
 {
     size_t line = 1;
     size_t column = 0;
-    int last_wear_cr = 0;
+    int last_was_cr = 0;
     int c;
 
     if (file == NULL) {
@@ -98,7 +100,7 @@ lexer_scan(FILE *file)
         size_t token_column = column;
         TokenType type;
 
-        advance_position(c, &line, &column);
+        advance_position(c, &line, &column, &last_was_cr);
 
         if (is_ignored_space(c)) {
             continue;
