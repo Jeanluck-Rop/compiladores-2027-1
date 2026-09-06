@@ -39,7 +39,12 @@ Practica01_EquipoRPRJ/
     │   ├── expected
     │   ├── inputs
     │   └── README.md
-    └── README.md
+    ├── README.md
+    └── unit_tests
+        ├── expected
+        │   └── p_double_char.out
+        └── inputs
+            └── p_double_char.mc
 ```
 
 
@@ -95,21 +100,19 @@ make test
 
 ## Pruebas
 
-El proyecto cuenta con dos formas de pruebas independientes, que `make test` ejecuta en conjunto:
+Simplemente implementamos una prueba para el caso particular de dos simbolos contiguos, como bien se menciona
+en las limitantes y/o problemas del reporte, esta prueba busca mostrar que por el momento no tenemos forma de 
+detectar los casos para `==`, `<=` y `>=` por ejemplo. Por lo que para probar ambas por separado (las pruebas ya
+establecidas y las que el equipo implemento) debemos hacer lo siguiente:
 
-Pruebas de `tests/public/`, ejecutan el binario `minic` completo sobre cada archivo `.mc` de 
-`tests/public/inputs/` y comparan su salida contra `tests/public/expected/*.out`, se ejecutan con:
+- **`tests/public/`** casos de prueba proporcionados por la práctica, se ejecutan con:
 ```
 make test-cli
 ```
-
-En `tests/unit_tests/`, compilan y ejecutan directamente funciones internas del lexer y del sistema de tokens
-(por ejemplo `simple_token_type`, `token_init`), sin pasar por el binario completo ni por argumentos de línea de
-comandos, se corren con:
+- **`tests/unit_tests/`** casos adicionales, se ejecutan con:
 ```
 make test-unit
 ```
-
 
 ## Problemas conocidos
 
@@ -132,23 +135,26 @@ El comando:
 ```
 make test
 ```
-Corre primero `test-cli` y después `test-unit`. `test-cli` compara la salida de `minic` contra los archivos 
-esperados en `tests/public/expected/*.out`, e imprime `PASS`/`FAIL` por cada caso junto con un resumen final. 
-`test-unit` compila y ejecuta cada archivo de `tests/unit_tests/`, reportando `FAIL` si no compila o si algún 
-`assert` interno falla.
+Corre primero `test-cli` y después `test-unit`. Ambos comparan la salida de `minic` contra los
+archivos esperados (`tests/public/expected/*.out` y `tests/unit_tests/expected/*.out`
+respectivamente), e imprimen `PASS`/`FAIL` por cada caso junto con un resumen final. Si algún
+caso de cualquiera de las dos carpetas falla, `make test` termina con código de salida distinto
+de cero.
 
 Mientras que, el comando:
 ```
 ./minic <programa>.mc
 ```
-Imprime la secuencia de tokens reconocidos en `stdout`, los diagnósticos internos (errores de lectura, memoria,
-etc.) se imprimen por separado en `stderr`.
+Imprime la secuencia de tokens reconocidos en `stdout`, los diagnósticos internos (errores de
+lectura, memoria, etc.) se imprimen por separado en `stderr`.
 
-Las salidas de prueba (`.actual`) se generan en `build/`.
+Las salidas de prueba (`.actual`) se generan en `build/`, tanto para `test-cli` como para
+`test-unit`.
 
-Como nota extra, dado que los `archivos.mc` se encuentran en la ruta **tests/public/inputs/**, el comando 
-`./minic <programa>.mc` no debe ejecutarse de ese modo a secas, sino con la ruta al archivo de entrada, ejemplo:
+Como nota extra, dado que los archivos `.mc` se encuentran en rutas como
+**tests/public/inputs/** o **tests/unit_tests/inputs/**, el comando `./minic <programa>.mc` no
+debe ejecutarse de ese modo a secas, sino con la ruta al archivo de entrada, ejemplo:
 ```
-./minic tests/public/inputs/<programa>.mc
+./minic tests/unit_tests/inputs/p_double_char.mc
 ```
-A menos que algún archivo *.mc* se encuentre en el directorio actual del ejecutable.
+A menos que algún archivo `.mc` se encuentre en el directorio actual del ejecutable.
