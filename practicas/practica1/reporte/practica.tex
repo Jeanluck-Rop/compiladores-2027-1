@@ -344,7 +344,6 @@ Esto se debe a que la implementación actual no incorpora una estrategia de lect
 % ================================================================
 \section*{Conclusiones}
 % ================================================================
-\section{Conclusiones}
 La implementación del analizador léxico permitió aplicar los conceptos de reconocimiento de tokens, manejo de lexemas, seguimiento de línea y columna, y administración de memoria. Las pruebas confirmaron que el analizador recorre correctamente el archivo, identifica los elementos contemplados en el alcance de la práctica, reporta caracteres no reconocidos mediante \texttt{ERROR} y señala el final de la entrada con \texttt{TOKEN\_EOF}.
 
 Se identificó como limitación el reconocimiento de operadores compuestos (\texttt{==}, \texttt{<=}, \texttt{>=}), actualmente interpretados como símbolos independientes. Esto podrá resolverse en la Práctica 2 mediante una estrategia de lectura anticipada que reconozca operadores como \texttt{==}, \texttt{!=}, \texttt{<=}, \texttt{>=}, \texttt{&&} y \texttt{||} como tokens individuales, ampliando así las categorías reconocidas por el analizador.
