@@ -106,50 +106,50 @@
 \section*{Descripción de la solución}
 % ================================================================
 
-\begin{quote}
-  \subsection{Organización de módulos}
+\subsection*{Organización de módulos}
 
 La práctica se organiza de manera modular, separando las declaraciones de las implementaciones y agrupando las responsabilidades relacionadas con el análisis léxico. El directorio include contiene los archivos de encabezado, donde se definen las estructuras y tipos necesarios para trabajar con tokens y con el analizador léxico. Por otra parte, el directorio src contiene las implementaciones de los módulos y el programa principal.
 
 El módulo encargado del análisis léxico contiene las funciones responsables de recorrer la entrada, identificar los diferentes tipos de tokens y mantener su posición dentro del archivo. El módulo de tokens proporciona las operaciones necesarias para crear, mostrar y destruir las estructuras de tipo Token. Finalmente, el archivo principal se encarga de iniciar la ejecución del programa y proporcionar la entrada al analizador léxico.
 
-  La implementación del analizador léxico se divide en varios métodos auxiliares y un método principal encargado de recorrer y procesar la entrada. Cada método cumple una función específica dentro del proceso de reconocimiento de tokens, permitiendo mantener una organización modular y facilitar el mantenimiento del código.
+La implementación del analizador léxico se divide en varios métodos auxiliares y un método principal encargado de recorrer y procesar la entrada. Cada método cumple una función específica dentro del proceso de reconocimiento de tokens, permitiendo mantener una organización modular y facilitar el mantenimiento del código.
+
 \begin{itemize}
-    \item \texttt{simple\_token\_type}: Se encarga de identificar los símbolos simples del lenguaje, como operadores aritméticos, operadores de comparación, paréntesis, llaves, el operador de asignación y el punto y coma. Recibe el carácter leído y determina el tipo de token correspondiente.
+\item \texttt{simple\_token\_type}: Se encarga de identificar los símbolos simples del lenguaje, como operadores aritméticos, operadores de comparación, paréntesis, llaves, el operador de asignación y el punto y coma. Recibe el carácter leído y determina el tipo de token correspondiente.
+  
+\item \texttt{is\_ignored\_space}: Determina si el carácter leído corresponde a un espacio en blanco que debe ser ignorado por el analizador léxico. Se consideran espacios, tabulaciones y caracteres de salto de línea.
+  
+\item \texttt{advance\_position}: Actualiza la posición actual de lectura, manteniendo el número de línea y columna donde se encuentra el analizador. Además, contempla diferentes formas de salto de línea, incluyendo \texttt{\textbackslash r}, \texttt{\textbackslash n} y la secuencia \texttt{\textbackslash r\textbackslash n}.
+  
+\item \texttt{lexer\_scan}:Es el método principal del analizador léxico. Se encarga de recorrer el archivo carácter por carácter, ignorar espacios en blanco, reconocer símbolos simples y números enteros, generar tokens, mostrar su información y liberar los recursos utilizados. También se encarga de detectar caracteres no reconocidos mediante tokens de tipo \texttt{ERROR} y, al finalizar la entrada, generar el token especial \texttt{TOKEN\_EOF}.
+  
+\item \texttt{token\_init}: Se utiliza para inicializar una estructura de tipo \texttt{Token} con la información correspondiente, incluyendo su tipo, lexema y posición dentro del archivo. En caso de no poder realizar la inicialización correctamente, se reporta un error.
+  
+\item \texttt{token\_print}: Permite mostrar la información del token generado, facilitando la verificación del funcionamiento del analizador léxico durante las pruebas.
 
-    \item \texttt{is\_ignored\_space}: Determina si el carácter leído corresponde a un espacio en blanco que debe ser ignorado por el analizador léxico. Se consideran espacios, tabulaciones y caracteres de salto de línea.
-
-    \item \texttt{advance\_position}: Actualiza la posición actual de lectura, manteniendo el número de línea y columna donde se encuentra el analizador. Además, contempla diferentes formas de salto de línea, incluyendo \texttt{\textbackslash r}, \texttt{\textbackslash n} y la secuencia \texttt{\textbackslash r\textbackslash n}.
-
-    \item \texttt{lexer\_scan}:Es el método principal del analizador léxico. Se encarga de recorrer el archivo carácter por carácter, ignorar espacios en blanco, reconocer símbolos simples y números enteros, generar tokens, mostrar su información y liberar los recursos utilizados. También se encarga de detectar caracteres no reconocidos mediante tokens de tipo \texttt{ERROR} y, al finalizar la entrada, generar el token especial \texttt{TOKEN\_EOF}.
-
-    \item \texttt{token\_init}: Se utiliza para inicializar una estructura de tipo \texttt{Token} con la información correspondiente, incluyendo su tipo, lexema y posición dentro del archivo. En caso de no poder realizar la inicialización correctamente, se reporta un error.
-
-    \item \texttt{token\_print}: Permite mostrar la información del token generado, facilitando la verificación del funcionamiento del analizador léxico durante las pruebas.
-
-    \item \texttt{token\_destroy}: Se encarga de liberar los recursos asociados con un token una vez que este ha sido procesado, evitando fugas de memoria.
+\item \texttt{token\_destroy}: Se encarga de liberar los recursos asociados con un token una vez que este ha sido procesado, evitando fugas de memoria.
 \end{itemize}
 
-\subsection{Representación de tokens}
+\subsection*{Representación de tokens}
 Los tokens se representan mediante un tipo enumerado \texttt{TokenType}, que identifica las categorías reconocidas por el analizador léxico: tokens especiales (\texttt{TOKEN\_EOF}, \texttt{ERROR}), identificadores, enteros, palabras reservadas (\texttt{INT}, \texttt{BOOL}, \texttt{IF}, \texttt{ELSE}, \texttt{WHILE}, \texttt{PRINT}), booleanos (\texttt{TRUE}, \texttt{FALSE}), operadores (aritméticos, de asignación, comparación y lógicos) y delimitadores (paréntesis, llaves, punto y coma).
 
 La función \texttt{token\_type\_name} traduce un valor \texttt{TokenType} a su representación textual mediante un \texttt{switch} (por ejemplo, \texttt{"PLUS"} para suma o \texttt{"INTEGER"} para enteros), devolviendo \texttt{"UNKNOWN"} para tipos no definidos. Esto facilita la visualización y depuración del analizador, permitiendo comprobar que la entrada fue dividida y clasificada correctamente mediante nombres descriptivos en lugar de valores internos.
 
-\subsection{Estrategia para recorrer el archivo}
+\subsection*{Estrategia para recorrer el archivo}
 El archivo se recorre secuencialmente, carácter por carácter, mediante \texttt{fgetc}, en un ciclo que continúa hasta encontrar \texttt{EOF}. Antes de procesar cada carácter se guarda su posición (línea y columna), la cual se actualiza con \texttt{advance\_position}. Los espacios, tabulaciones y saltos de línea se ignoran mediante \texttt{is\_ignored\_space}.
 
 Si el carácter es un símbolo simple, \texttt{simple\_token\_type} determina su tipo. En el caso de los enteros, se leen todos los dígitos consecutivos para formar el lexema completo, devolviendo al flujo (mediante \texttt{ungetc}) el carácter que ya no pertenece al número. Los caracteres no reconocidos generan un token \texttt{ERROR}, y al llegar al final del archivo se genera un token \texttt{TOKEN\_EOF} con la posición actual.
 
 Esta estrategia permite un recorrido lineal de la entrada, identificando y ubicando cada token de forma ordenada.
 
-\subsection{Seguimiento de línea y columna}
+\subsection*{Seguimiento de línea y columna}
 El analizador mantiene la posición actual mediante \texttt{line} y \texttt{column} (iniciando en línea 1, columna 0), actualizadas por \texttt{advance\_position} en cada carácter procesado: los caracteres normales incrementan la columna, mientras que un salto de línea la reinicia e incrementa la línea.
 
 Para manejar distintas representaciones de salto de línea, un \texttt{\textbackslash r} incrementa la línea y reinicia la columna; si le sigue un \texttt{\textbackslash n}, la variable \texttt{last\_was\_cr} evita que la secuencia \texttt{\textbackslash r\textbackslash n} incremente la línea dos veces.
 
 Antes de procesar cada carácter, se guardan \texttt{line} y \texttt{column} en \texttt{token\_line} y \texttt{token\_column}, para que el token conserve la posición donde inició su reconocimiento. Esto facilita la identificación y depuración de errores al asociar cada token con su ubicación exacta en el archivo.
 
-\subsection{Manejo de lexemas y memoria}
+\subsection*{Manejo de lexemas y memoria}
 Los lexemas conservan la representación textual de cada token: para símbolos simples se usa un arreglo de un carácter más el terminador nulo, y para enteros un búfer fijo donde se almacenan los dígitos consecutivos.
 
 El lexema, junto con el tipo de token y su posición, inicializa la estructura \texttt{Token} mediante \texttt{token\_init}. Tras generar e imprimir cada token, \texttt{token\_destroy} libera la memoria asignada, evitando su acumulación durante el recorrido del archivo. Si la inicialización falla, el analizador muestra un error y finaliza la ejecución.
@@ -158,12 +158,11 @@ Además, el búfer de enteros tiene un límite de tamaño: si un número lo exce
 
 Esta estrategia permite manejar los lexemas de forma temporal y segura, conservando la información de cada token mientras es necesaria y liberando los recursos una vez procesados.
 
-\subsection{Tratamiento de errores y final del archivo}
+\subsection*{Tratamiento de errores y final del archivo}
 Cuando se encuentra un carácter no reconocido, se genera un token \texttt{ERROR} que conserva su lexema y posición, facilitando la localización del problema. También se realizan comprobaciones en la creación de tokens: si \texttt{token\_init} falla, se muestra un error y se finaliza la ejecución; si un entero excede la capacidad del búfer, se reporta un error para evitar escribir fuera de los límites de memoria. Durante la lectura, \texttt{ferror} verifica posibles fallos de entrada, terminando la ejecución de forma controlada en caso de error.
 
-El final del archivo se detecta mediante \texttt{EOF}, retornado por \texttt{fgetc}. Al finalizar el recorrido sin errores de lectura, se genera un token \texttt{TOKEN\_EOF} con la posición actual y lexema vacío, indicando el fin de la secuencia de tokens. Este token también es destruido con \texttt{token_destroy}, garantizando la liberación de recursos y un procesamiento controlado de la entrada.
+El final del archivo se detecta mediante \texttt{EOF}, retornado por \texttt{fgetc}. Al finalizar el recorrido sin errores de lectura, se genera un token \texttt{TOKEN\_EOF} con la posición actual y lexema vacío, indicando el fin de la secuencia de tokens. Este token también es destruido con \texttt{token\_destroy}, garantizando la liberación de recursos y un procesamiento controlado de la entrada.
 
-\end{quote}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{simple\_toke\_type}, símbolos simples.}]
   /* TODO: agregar los demas simbolos simples de la practica. */
@@ -205,13 +204,12 @@ El final del archivo se detecta mediante \texttt{EOF}, retornado por \texttt{fge
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{advance\_position}, seguimiento de línea y columna.}]
-  static void
+static void
 advance_position(int c,
                  size_t *line,
                  size_t *column,
                  int *last_was_cr)
 {
-    /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
     if (c == '\r'){
         (*line)++;
         *column = 0;
@@ -231,8 +229,6 @@ advance_position(int c,
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, reconocimiento de números enteros.}]
- 
-  /* TODO: reconocer enteros */
         if (isdigit(c)) {
             char buffer[64];
             size_t len =  0;
@@ -241,7 +237,7 @@ advance_position(int c,
             int next;
             while ((next = fgetc(file)) != EOF && isdigit(next)) {
                 if (len + 1 >= sizeof(buffer)) {
-                    fprintf(stderr, "Error: número demasiado largo.\n ");
+                    fprintf(stderr, "Error: numero demasiado largo.\n ");
                     return 2;
                 }
                 buffer[len++] = (char)next;
@@ -266,7 +262,6 @@ advance_position(int c,
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
-  /* TODO: reemplazar este diagnostico por un token ERROR. */
         char lexeme[2] = {(char)c, '\0'};
         Token token;
         
@@ -280,8 +275,7 @@ advance_position(int c,
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
-  /* TODO: generar TOKEN_EOF con la posicion actual. */
-  int
+int
 lexer_scan(FILE *file)
 {
     size_t line = 1;
@@ -294,9 +288,7 @@ lexer_scan(FILE *file)
 \section*{Resultados}
 % ================================================================
 
-\begin{quote}
-  \section{Resultados}
-\subsection{Casos probados}
+\subsection*{Casos probados}
 Se utilizó el caso de prueba \texttt{p\_double\_char.mc}, diseñado para verificar el comportamiento del analizador ante operadores de uno o dos caracteres. El archivo de entrada contiene:
 \begin{verbatim}
 1==2;
@@ -323,14 +315,13 @@ Esto permite comprobar que los operadores de igualdad y comparación se procesan
 4:0 TOKEN_EOF
 \end{verbatim}
 
-\subsection{Resultados relevantes}
+\subsection*{Resultados relevantes}
 El analizador identifica correctamente los enteros (\texttt{INTEGER}) y los símbolos simples de asignación, comparación y fin de sentencia. Las expresiones \texttt{==}, \texttt{<=} y \texttt{>=} se descomponen en dos tokens consecutivos: \texttt{ASSIGN ASSIGN}, \texttt{LESS ASSIGN} y \texttt{GREATER ASSIGN}. La posición de línea y columna se registra correctamente para cada token (por ejemplo, \texttt{1:0} para el primer entero y \texttt{1:1}/\texttt{1:2} para \texttt{==}), y el análisis finaliza con \texttt{TOKEN\_EOF} en \texttt{4:0}.
 
-\subsection{Evidencia del cumplimiento del alcance}
-Este caso confirma que el archivo se recorre secuencialmente, que los enteros y símbolos simples se clasifican correctamente, y que el seguimiento de línea y columna funciona como se espera, incluyendo la detección correcta del final de la entrada mediante \texttt{TOKEN_EOF}.
+\subsection*{Evidencia del cumplimiento del alcance}
+Este caso confirma que el archivo se recorre secuencialmente, que los enteros y símbolos simples se clasifican correctamente, y que el seguimiento de línea y columna funciona como se espera, incluyendo la detección correcta del final de la entrada mediante \texttt{TOKEN\_EOF}.
 
-Asimismo, evidencia que los operadores de dos caracteres aún no se reconocen como tokens individuales: \texttt{==} se interpreta como dos \texttt{ASSIGN}, y \texttt{<=} como \texttt{LESS} seguido de \texttt{ASSIGN}. Esto es consistente con el alcance actual, que reconoce símbolos simples pero no agrupa operadores compuestos como \texttt{EQUAL}, \texttt{LESS_EQUAL} o \texttt{GREATER\_EQUAL}.
-\end{quote}
+Asimismo, evidencia que los operadores de dos caracteres aún no se reconocen como tokens individuales: \texttt{==} se interpreta como dos \texttt{ASSIGN}, y \texttt{<=} como \texttt{LESS} seguido de \texttt{ASSIGN}. Esto es consistente con el alcance actual, que reconoce símbolos simples pero no agrupa operadores compuestos como \texttt{EQUAL}, \texttt{LESS\_EQUAL} o \texttt{GREATER\_EQUAL}.
 
 % ================================================================
 \section*{Problemas encontrados}
@@ -346,7 +337,7 @@ Esto se debe a que la implementación actual no incorpora una estrategia de lect
 % ================================================================
 La implementación del analizador léxico permitió aplicar los conceptos de reconocimiento de tokens, manejo de lexemas, seguimiento de línea y columna, y administración de memoria. Las pruebas confirmaron que el analizador recorre correctamente el archivo, identifica los elementos contemplados en el alcance de la práctica, reporta caracteres no reconocidos mediante \texttt{ERROR} y señala el final de la entrada con \texttt{TOKEN\_EOF}.
 
-Se identificó como limitación el reconocimiento de operadores compuestos (\texttt{==}, \texttt{<=}, \texttt{>=}), actualmente interpretados como símbolos independientes. Esto podrá resolverse en la Práctica 2 mediante una estrategia de lectura anticipada que reconozca operadores como \texttt{==}, \texttt{!=}, \texttt{<=}, \texttt{>=}, \texttt{&&} y \texttt{||} como tokens individuales, ampliando así las categorías reconocidas por el analizador.
+Se identificó como limitación el reconocimiento de operadores compuestos (\texttt{==}, \texttt{<=}, \texttt{>=}), actualmente interpretados como símbolos independientes. Esto podrá resolverse en la Práctica 2 mediante una estrategia de lectura anticipada que reconozca operadores como \texttt{==}, \texttt{!=}, \texttt{<=}, \texttt{>=}, \texttt{\&\&} y \texttt{||} como tokens individuales, ampliando así las categorías reconocidas por el analizador.
 
 En conclusión, esta práctica estableció una base funcional para el analizador léxico y permitió comprender la transformación de una entrada de texto en una secuencia estructurada de tokens. Su organización modular facilita futuras ampliaciones sin necesidad de modificar la estructura existente.
 
@@ -375,10 +366,10 @@ En síntesis, el uso de inteligencia artificial fue de carácter consultivo, enf
   ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
 
 \bibitem{ref3}
-  ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/io/fgetc}}}
+  ppreference.com. (n.d.). File input/output, fgetc, getc. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/io/fgetc}}}
 
 \bibitem{ref4}
-  ppreference.com. (n.d.). Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isdigit}}}
+  ppreference.com. (n.d.). Strings library, isdigit. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isdigit}}}
   
 \end{thebibliography}
 
