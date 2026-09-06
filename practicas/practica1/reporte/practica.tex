@@ -119,11 +119,11 @@
 \end{quote}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{simple\_toke\_type}, símbolos simples.}]
-  /* TODO: agregar los demás símbolos simples de la práctica. */
+  /* TODO: agregar los demas simbolos simples de la practica. */
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{advance\_position}, seguimiento de línea y columna.}]
-  /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
+  /* TODO: adaptar esta logica para \r aislado y para la secuencia \r\n. */
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, reconocimiento de números enteros.}]
@@ -131,11 +131,11 @@
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
-  /* TODO: reemplazar este diagnóstico por un token ERROR. */
+  /* TODO: reemplazar este diagnostico por un token ERROR. */
 \end{lstlisting}
 
 \begin{lstlisting}[style=modernc, caption={\texttt{lexer\_scan}, manejo de diagnóstico con token ERROR.}]
-  /* TODO: generar TOKEN_EOF con la posición actual. */
+  /* TODO: generar TOKEN_EOF con la posicion actual. */
 \end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -164,6 +164,9 @@
   Describir los problemas relevantes encontrados durante el desarrollo y cómo fueron resueltos o qué limitaciones permanecen.
 \end{quote}
 
+Un problema relevante y que funge como una limitante de \textbf{MiniC} que se tiene en esta práctica 1, es que
+aún no diferenciamos  entre caracteres que compartan símbolos, como \texttt{=} y \texttt{==}, aún no hay una
+manera específica de diferenciarlos, al momento \texttt{==} se tomaría como dos \texttt{=} y como debería ser.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -196,9 +199,18 @@
   Si no se utilizaron, indicarlo explícitamente.\\
 \end{quote}
 
-No se utilizo IA para realizacion de esta practica mas que para la configuracion del Makefile. La mayoria de su
-contenido fue reutilizado de lo visto en clase de laboratorio con el ayudante, ademas de algunos ajustes por
-nuestra parte. En el archivo se indica exactamente donde fue llevado a cabo su utilizacion.
+No se utilizo IA para realización de esta práctica dado que fue, relativamente, trivial; más que para la
+configuración del \texttt{Makefile} y soporte en hacer las pruebas unitarias, ya que ningún integrante del
+equipo había realizado pruebas unitarias en C, un \texttt{Makefile} sí, pero no con la capacidad de ejectuar
+test.\\
+
+La mayoria del contenido del \texttt{Makefile} fue reutilizado de lo visto en clase de laboratorio con el
+ayudante, además de algunos ajustes por nuestra parte. En el archivo \texttt{Makefile} se indica exactamente
+donde fue llevado a cabo la ayuda de la herramienta \textbf{Claude} para configurar el comando
+\texttt{make test}, para pruebas unitarias, archivos \texttt{.out} y \texttt{.mc}.\\
+
+Para los test, únicamente se le solicitó información sobre como implementar pruebas unitarias para C, conectándolos con la configuración \texttt{make test} anterior.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
