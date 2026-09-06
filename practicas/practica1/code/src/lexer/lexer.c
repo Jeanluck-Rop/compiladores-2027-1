@@ -43,6 +43,15 @@ simple_token_type(int c,
     case ';':
         *type = SEMICOLON;
         break;
+    case '=':
+        *type = ASSIGN;
+        break;
+    case '<':
+        *type = LESS;
+        break;
+    case '>':
+        *type = GREATER;
+        break;
     default:
         return 0;
     }
@@ -65,11 +74,11 @@ advance_position(int c,
                  int *last_was_cr)
 {
     /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
-    if (c == 'r'){
+    if (c == '\r'){
         (*line)++;
         *column = 0;
         *last_was_cr = 1;
-    } else if (c == 'n') {
+    } else if (c == '\n') {
         if (*last_was_cr) {
             *last_was_cr = 0;
         } else {
