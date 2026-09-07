@@ -4,3 +4,8 @@ tarea1/*.out
 tarea1/*.log
 tarea1/*.aux
 tarea1/*.toc
+tarea2/*~
+tarea2/*.out
+tarea2/*.log
+tarea2/*.aux
+tarea2/*.toc

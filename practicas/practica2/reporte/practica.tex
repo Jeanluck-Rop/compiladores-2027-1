@@ -1,0 +1,213 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float, enumitem, array, listings}
+\usepackage{geometry, amsmath, amssymb, amsthm}
+\usepackage{graphicx, xcolor, fancyhdr, fancyvrb}
+\usepackage[normalem]{ulem}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoCen}{Práctica 1}
+\newcommand{\encabezadoDer}{\textit{Infraestructura básica del analizador léxico}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[C]{\encabezadoCen}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+\newcommand{\minic}{
+  {M\footnotesize INI\normalsize C}
+}
+% ========================================
+% CONFIGURACION Y COLORES LSTLISTINGS
+% ========================================
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{links}{HTML}{0D1894}
+
+\definecolor{backcolour}{rgb}{0.93, 0.93, 0.93}
+\definecolor{codegreen}{rgb}{0, 0.6, 0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0, 0.82}
+\definecolor{keywordcolor}{rgb}{0.5, 0.0, 0.5}
+\definecolor{codeorg}{HTML}{DB9400}
+\definecolor{linkblue}{HTML}{1A167A}
+\definecolor{redcolor}{HTML}{7A1805}
+\definecolor{greencolor}{HTML}{0E8F10}
+\definecolor{greeblucolor}{HTML}{0E6657}
+\definecolor{orgcolor}{HTML}{B86D00}
+\definecolor{highlightyellow}{HTML}{FFF176}
+\definecolor{boxgray}{HTML}{F2F2F2}
+\definecolor{borderblue}{HTML}{1A167A}
+
+% ========================================
+% CONFIGURACION LENGUAJES
+% ========================================
+\lstdefinestyle{modernc}{
+    language=C,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=tttt,
+    emph={int,uint32_t,char,double,float,unsigned,void,bool,struct,size_t,
+          Room, Client, pthread_mutex_t, NULL},
+    emphstyle=\color{codeorg}\bfseries
+}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Objetivo}
+% ================================================================
+
+Expliquen brevemente qué funcionalidades incorporaron y cómo estas completan el
+analizador léxico de MiniC.
+
+\begin{quote}
+ En esta primera práctica
+\end{quote}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Evolución respecto de la Práctica 1}
+% ================================================================
+
+Describan:
+
+- módulos modificados o agregados;
+- cambios realizados a la representación de tokens;
+- correcciones efectuadas a la implementación anterior;
+- refactorizaciones relevantes y su justificación.
+
+% ================================================================
+\section*{Descripción de la solución}
+% ================================================================
+
+Expliquen, como mínimo:
+
+- reconocimiento de identificadores;
+- distinción entre identificadores, palabras reservadas y booleanos;
+- estrategia de anticipación para operadores compuestos;
+- distinción entre `SLASH` y comentarios;
+- actualización de línea y columna dentro de comentarios;
+- generación de tokens `ERROR` y recuperación;
+- generación y posición de `TOKEN_EOF`;
+- administración de memoria relevante.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{fn}, fn.}]
+
+\end{lstlisting}
+
+% ================================================================
+\section*{Resultados y Pruebas}
+% ================================================================
+
+- casos correctos;
+- casos límite;
+- casos de error;
+- pruebas de regresión de la Práctica 1;
+- resultados relevantes y evidencia suficiente para justificar el cumplimiento.
+
+Las pruebas públicas no sustituyen las pruebas diseñadas por el equipo.
+
+% ================================================================
+\section*{Problemas encontrados}
+% ================================================================
+
+Describan los problemas relevantes encontrados, la forma en que se resolvieron y
+las limitaciones conocidas que permanezcan en la entrega.
+
+% ================================================================
+\section*{División del trabajo}
+% ================================================================
+
+Expliquen la participación de cada integrante. Ambos deben comprender y poder
+explicar la implementación completa.
+
+% ================================================================
+\section*{Conclusiones}
+% ================================================================
+
+Reflexionen sobre el resultado, lo aprendido y la utilidad del lexer como entrada
+para las siguientes etapas del compilador.
+
+% ================================================================
+\section*{Uso de herramientas de Inteligencia Artificial}
+% ================================================================
+
+Cuando se hayan utilizado, indiquen:
+
+- herramienta;
+- propósito;
+- prompt utilizado;
+- tipo de apoyo recibido;
+- forma en que la respuesta fue revisada, comprobada o adaptada.
+
+Si no utilizaron estas herramientas, indíquenlo explícitamente.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+
+\begin{thebibliography}{99}
+\bibitem{ref1}
+  ppreference.com. (n.d.). C language. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+
+\bibitem{ref1}
+  ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+
+\bibitem{ref3}
+  ppreference.com. (n.d.). File input/output, fgetc, getc. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/io/fgetc}}}
+
+\bibitem{ref4}
+  ppreference.com. (n.d.). Strings library, isdigit. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isdigit}}}
+  
+\end{thebibliography}
+
+\end{document}

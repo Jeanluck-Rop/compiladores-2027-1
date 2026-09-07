@@ -1,0 +1,115 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{float, enumitem, xcolor, geometry}
+\usepackage{graphicx, fancyhdr, fancyvrb}
+\usepackage{array, makecell}
+\usepackage{forest}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks=true, linkcolor=linkblue, urlcolor=linkblue, citecolor=linkblue]{hyperref}
+\usepackage{makecell}
+
+\definecolor{linkblue}{HTML}{1A167A}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+\newcommand{\pred}{$\rightarrow$}
+\newcommand{\asig}{$\leftarrow$}
+
+% ========================================
+% COLORES
+% ========================================
+\definecolor{green_checkmark}{HTML}{07E314}
+\definecolor{red_cross}{HTML}{ED4728}
+
+% ========================================
+% COMANDOS PARA MARCADORES
+% ========================================
+\newcommand{\greencheck}{\textcolor{green_checkmark}{$\checkmark$}}
+\newcommand{\redcross}{\textcolor{red_cross}{$\times$}}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoDer}{\textit{Tarea 1: Fases de Compilación y expresiones regulares}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ========================================
+% CONFIGURACION DE TABLAS
+% ========================================
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}m{#1}}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{enumerate}[label=\arabic*.]
+
+\item Ejercicio 1.
+
+  \bigskip
+
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\item Ejercicio 2.
+  
+  \bigskip
+
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\item Ejercicio 3.
+  
+  \bigskip
+  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\item Ejercicio 4.
+
+  \bigskip
+
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\item Ejercicio 5.
+
+  \bigskip
+
+\end{enumerate}
+
+\end{document}
