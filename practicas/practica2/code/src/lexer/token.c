@@ -9,38 +9,68 @@ const char*
 token_type_name(TokenType type)
 {
     switch (type) {
-        case TOKEN_EOF: return "TOKEN_EOF";
-        case ERROR: return "ERROR";
-        case IDENTIFIER: return "IDENTIFIER";
-        case INTEGER: return "INTEGER";
-        case INT: return "INT";
-        case BOOL: return "BOOL";
-        case IF: return "IF";
-        case ELSE: return "ELSE";
-        case WHILE: return "WHILE";
-        case PRINT: return "PRINT";
-        case TRUE: return "TRUE";
-        case FALSE: return "FALSE";
-        case PLUS: return "PLUS";
-        case MINUS: return "MINUS";
-        case STAR: return "STAR";
-        case SLASH: return "SLASH";
-        case ASSIGN: return "ASSIGN";
-        case EQUAL: return "EQUAL";
-        case NOT_EQUAL: return "NOT_EQUAL";
-        case LESS: return "LESS";
-        case LESS_EQUAL: return "LESS_EQUAL";
-        case GREATER: return "GREATER";
-        case GREATER_EQUAL: return "GREATER_EQUAL";
-        case AND: return "AND";
-        case OR: return "OR";
-        case LPAREN: return "LPAREN";
-        case RPAREN: return "RPAREN";
-        case LBRACE: return "LBRACE";
-        case RBRACE: return "RBRACE";
-        case SEMICOLON: return "SEMICOLON";
+    case TOKEN_EOF:
+        return "TOKEN_EOF";
+    case ERROR:
+        return "ERROR";
+    case IDENTIFIER:
+        return "IDENTIFIER";
+    case INTEGER:
+        return "INTEGER";
+    case INT:
+        return "INT";
+    case BOOL:
+        return "BOOL";
+    case IF:
+        return "IF";
+    case ELSE:
+        return "ELSE";
+    case WHILE:
+        return "WHILE";
+    case PRINT:
+        return "PRINT";
+    case TRUE:
+        return "TRUE";
+    case FALSE:
+        return "FALSE";
+    case PLUS:
+        return "PLUS";
+    case MINUS:
+        return "MINUS";
+    case STAR:
+        return "STAR";
+    case SLASH:
+        return "SLASH";
+    case ASSIGN:
+        return "ASSIGN";
+    case EQUAL:
+        return "EQUAL";
+    case NOT_EQUAL:
+        return "NOT_EQUAL";
+    case LESS:
+        return "LESS";
+    case LESS_EQUAL:
+        return "LESS_EQUAL";
+    case GREATER:
+        return "GREATER";
+    case GREATER_EQUAL:
+        return "GREATER_EQUAL";
+    case AND:
+        return "AND";
+    case OR:
+        return "OR";
+    case LPAREN:
+        return "LPAREN";
+    case RPAREN:
+        return "RPAREN";
+    case LBRACE:
+        return "LBRACE";
+    case RBRACE:
+        return "RBRACE";
+    case SEMICOLON:
+        return "SEMICOLON";
     }
-
+    
     return "UNKNOWN";
 }
 

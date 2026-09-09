@@ -1,62 +1,41 @@
 #include "lexer/lexer.h"
 
 #include <ctype.h>
-#include <stdio.h>
+#include <string.h>
 
 /* */
-int
-simple_token_type(int c,
-                  TokenType *type)
+typedef struct {
+    const char *lexeme;
+    TokenType type;
+} Keyword;
+
+/* */
+static const Keyword keywords[] = {
+    {"int", INT},
+    {"bool", BOOL},
+    {"if", IF},
+    {"else", ELSE},
+    {"while", WHILE},
+    {"print", PRINT},
+    {"true", TRUE},
+    {"false", FALSE}
+};
+
+/* */
+static int
+lookup_keyword(const char *lexeme,
+               TokenType *type)
 {
-    if (type == NULL) {
-        return 0;
+    size_t n = sizeof(keywords) / sizeof(keywords[0]);
+
+    for (size_t i = 0; i < n; i++) {
+        if (strcmp(lexeme, keywords[i].lexeme) == 0) {
+            *type = keywords[i].type;
+            return 1;
+        }
     }
     
-    switch (c) {
-    case '+':
-        *type = PLUS;
-        break;
-        
-        /* TODO: agregar los demás símbolos simples de la práctica. */
-        
-    case '-':
-        *type = MINUS;
-        break;
-    case '*':
-        *type = STAR;
-        break;
-    case '/':
-        *type = SLASH;
-        break;
-    case '(':
-        *type = LPAREN;
-        break;
-    case ')':
-        *type = RPAREN;
-        break;
-    case '{':
-        *type = LBRACE;
-        break;
-    case '}':
-        *type = RBRACE;
-        break;
-    case ';':
-        *type = SEMICOLON;
-        break;
-    case '=':
-        *type = ASSIGN;
-        break;
-    case '<':
-        *type = LESS;
-        break;
-    case '>':
-        *type = GREATER;
-        break;
-    default:
-        return 0;
-    }
-    
-    return 1;
+    return 0;
 }
 
 /* */
@@ -73,7 +52,6 @@ advance_position(int c,
                  size_t *column,
                  int *last_was_cr)
 {
-    /* TODO: adaptar esta lógica para \r aislado y para la secuencia \r\n. */
     if (c == '\r'){
         (*line)++;
         *column = 0;
@@ -92,17 +70,160 @@ advance_position(int c,
 }
 
 /* */
+static int
+emit_token(TokenType type,
+           const char *lexeme,
+           size_t line,
+           size_t column)
+{
+    Token token;
+    
+    if (!token_init(&token, type, lexeme, line, column)) {
+        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+        return 0;
+    }
+    
+    token_print(&token);
+    token_destroy(&token);
+    return 1;
+}
+
+/* */
+static TokenType
+composed_token_type(int c,
+                    FILE *file,
+                    char *lexeme,
+                    size_t *line,
+                    size_t *column,
+                    int *last_was_cr)
+{
+    int next = fgetc(file);
+    TokenType type;
+    int consumed_next = 0;
+
+    switch (c) {
+    case '=':
+        if (next == '=') {
+            type = EQUAL;
+            consumed_next = 1;
+        }
+        else
+            type = ASSIGN;
+        break;
+    case '!':
+        if (next == '=') {
+            type = NOT_EQUAL;
+            consumed_next = 1;
+        }
+        else
+            type = ERROR;
+        break;
+    case '<':
+        if (next == '=') {
+            type = LESS_EQUAL;
+            consumed_next = 1;
+        }
+        else
+            type = LESS;
+        break;
+    case '>':
+        if (next == '=') {
+            type = GREATER_EQUAL;
+            consumed_next = 1;
+        }
+        else
+            type = GREATER;
+        break;
+    case '&':
+        if (next == '&') {
+            type = AND;
+            consumed_next = 1;
+        }
+        else
+            type = ERROR;
+        break;
+    case '|':
+        if (next == '|') {
+            type = OR;
+            consumed_next = 1;
+        }
+        else
+            type = ERROR;
+        break;
+    default:
+        type = ERROR;
+        break;
+    }
+
+    if (consumed_next) {
+        lexeme[0] = (char)c;
+        lexeme[1] = (char)next;
+        lexeme[2] = '\0';
+        advance_position(next, line, column, last_was_cr);
+    } else {
+        lexeme[0] = (char)c;
+        lexeme[1] = '\0';
+        if (next != EOF) {
+            ungetc(next, file);
+        }
+    }
+
+    return type;
+}
+
+/* */
+static int
+simple_token_type(int c,
+                  TokenType *type)
+{
+    if (type == NULL) {
+        return 0;
+    }
+    
+    switch (c) {
+    case '+':
+        *type = PLUS;
+        break;
+    case '-':
+        *type = MINUS;
+        break;
+    case '*':
+        *type = STAR;
+        break;
+        break;
+    case '(':
+        *type = LPAREN;
+        break;
+    case ')':
+        *type = RPAREN;
+        break;
+    case '{':
+        *type = LBRACE;
+        break;
+    case '}':
+        *type = RBRACE;
+        break;
+    case ';':
+        *type = SEMICOLON;
+        break;
+    default:
+        return 0;
+    }
+    
+    return 1;
+}
+
+/* */
 int
 lexer_scan(FILE *file)
 {
+    int c = 0;
     size_t line = 1;
     size_t column = 0;
     int last_was_cr = 0;
-    int c;
 
-    if (file == NULL) {
+    if (file == NULL)
         return 2;
-    }
 
     while ((c = fgetc(file)) != EOF) {
         size_t token_line = line;
@@ -111,66 +232,110 @@ lexer_scan(FILE *file)
 
         advance_position(c, &line, &column, &last_was_cr);
 
-        if (is_ignored_space(c)) {
+        if (is_ignored_space(c))
             continue;
-        }
 
-        if (simple_token_type(c, &type)) {
-            char lexeme[2] = {(char)c, '\0'};
-            Token token;
+        //Comentarios
+        if (c == '/') {
+            int next = fgetc(file);
 
-            if (!token_init(&token, type, lexeme,
-                            token_line, token_column)) {
-                fprintf(stderr, "Error: no se pudo reservar memoria.\n");
-                return 2;
+            if (next == '/') {
+                int i;
+                
+                advance_position(next, &line, &column, &last_was_cr);
+                while ((i = fgetc(file)) != EOF && i != '\n')
+                    advance_position(i, &line, &column, &last_was_cr);
+                if (i == '\n')
+                    advance_position(i, &line, &column, &last_was_cr);
+                continue;
             }
-
-            token_print(&token);
-            token_destroy(&token);
+            
+            if (next != EOF)
+                ungetc(next, file);
+            if (!emit_token(SLASH, "/", token_line, token_column))
+                return 2;
             continue;
         }
 
-        /* TODO: reconocer enteros */
+        //Compuestos
+        if (strchr("=<>!&|", c) != NULL) {
+            char lexeme[3];
+            type = composed_token_type(c, file, lexeme, &line, &column, &last_was_cr);
+            
+            if (!emit_token(type, lexeme, token_line, token_column))
+                return 2;
+            
+            continue;
+        }
+
+        //Numeros enteros
         if (isdigit(c)) {
             char buffer[64];
-            size_t len =  0;
-            buffer[len++] = (char)c;
-
+            size_t len = 0;
             int next;
+
+            buffer[len++] = (char)c;
             while ((next = fgetc(file)) != EOF && isdigit(next)) {
                 if (len + 1 >= sizeof(buffer)) {
-                    fprintf(stderr, "Error: número demasiado largo.\n ");
+                    fprintf(stderr, "Error: número demasiado largo.\n");
                     return 2;
                 }
                 buffer[len++] = (char)next;
                 advance_position(next, &line, &column, &last_was_cr);
             }
             buffer[len] = '\0';
-            
-            if (next != EOF) {
-                ungetc(next, file);
-            }
 
-            Token token;
-            if (!token_init(&token, INTEGER, buffer, token_line, token_column)) {
-                fprintf(stderr, "Error: no se pudo reservar memoria.\n");
-                        return 2;                        
+            if (next != EOF)
+                ungetc(next, file);
+            if (!emit_token(INTEGER, buffer, token_line, token_column))
+                return 2;
+            
+            continue;
+        }
+
+        //Identificadores y palabras reservadas
+        if (isalpha(c) || c == '_') {
+            char buffer[64];
+            size_t len = 0;
+            int next;
+            TokenType kw_type;
+
+            buffer[len++] = (char)c;
+            while ((next = fgetc(file)) != EOF &&
+                   (isalnum(next) || next == '_')) {
+                if (len + 1 >= sizeof(buffer)) {
+                    fprintf(stderr, "Error: identificador demasiado largo.\n");
+                    return 2;
+                }
+                buffer[len++] = (char)next;
+                advance_position(next, &line, &column, &last_was_cr);
             }
-            token_print(&token);
-            token_destroy(&token);
+            buffer[len] = '\0';
+
+            if (next != EOF)
+                ungetc(next, file);
+
+            if (lookup_keyword(buffer, &kw_type)) {
+                if (!emit_token(kw_type, buffer, token_line, token_column))
+                    return 2;
+            } else {
+                if (!emit_token(IDENTIFIER, buffer, token_line, token_column))
+                    return 2;
+            }
             continue;
         }
         
-        /* TODO: reemplazar este diagnóstico por un token ERROR */
-        char lexeme[2] = {(char)c, '\0'};
-        Token token;
+        //Simples
+        if (simple_token_type(c, &type)) {
+            char lexeme[2] = {(char)c, '\0'};
+            if (!emit_token(type, lexeme, token_line, token_column))
+                return 2;
+            continue;
+        }        
         
-        if (!token_init(&token, ERROR, lexeme, token_line, token_column)) {
-            fprintf(stderr, "Error: no se pudo reservar memoria.\n");
-            return 2;
-        }
-        token_print(&token);
-        token_destroy(&token);
+        char lexeme[2] = {(char)c, '\0'};
+         if (!emit_token(ERROR, lexeme, token_line, token_column))
+             return 2;
         continue;
     }
 
@@ -179,13 +344,7 @@ lexer_scan(FILE *file)
         return 2;
     }
 
-    /* TODO: generar TOKEN_EOF con la posición actual. */
-    Token eof_token;
-    if (!token_init(&eof_token, TOKEN_EOF, "", line, column)) {
-        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+    if (!emit_token(TOKEN_EOF, "", line, column))
         return 2;
-    }
-    token_print(&eof_token);
-    token_destroy(&eof_token);
     return 0;
 }
