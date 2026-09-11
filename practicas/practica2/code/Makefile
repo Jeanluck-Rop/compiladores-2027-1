@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -g
 CPPFLAGS = -Iinclude
 TARGET = minic
-SOURCES = src/main.c src/lexer/token.c src/lexer/lexer.c
+SOURCES = src/main.c src/lexer/token.c src/lexer/keywords.c src/lexer/lexer.c
 BUILD_DIR = build
 
 # Directorios de los test, se dividen conforme se van desarrollando las practicas
@@ -20,7 +20,7 @@ UNIT_TEST_EXPECTED_DIR = tests/unit_tests/expected
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCES) include/lexer/token.h include/lexer/lexer.h
+$(TARGET): $(SOURCES) include/lexer/token.h include/lexer/keywords.h include/lexer/lexer.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SOURCES) -o $(TARGET)
 
 test: test-cli test-unit

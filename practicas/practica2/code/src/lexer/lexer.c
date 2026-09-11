@@ -1,75 +1,17 @@
 #include "lexer/lexer.h"
+#include "lexer/keywords.h"
 
 #include <ctype.h>
 #include <string.h>
 
-/* */
-typedef struct {
-    const char *lexeme;
-    TokenType type;
-} Keyword;
-
-/* */
-static const Keyword keywords[] = {
-    {"int", INT},
-    {"bool", BOOL},
-    {"if", IF},
-    {"else", ELSE},
-    {"while", WHILE},
-    {"print", PRINT},
-    {"true", TRUE},
-    {"false", FALSE}
-};
-
-/* */
-static int
-lookup_keyword(const char *lexeme,
-               TokenType *type)
-{
-    size_t n = sizeof(keywords) / sizeof(keywords[0]);
-
-    for (size_t i = 0; i < n; i++) {
-        if (strcmp(lexeme, keywords[i].lexeme) == 0) {
-            *type = keywords[i].type;
-            return 1;
-        }
-    }
-    
-    return 0;
-}
-
-/* */
+/* Checamos si el caracter leido es un espacio en blanco (o salto de linea)*/
 static int
 is_ignored_space(int c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-/* */
-static void
-advance_position(int c,
-                 size_t *line,
-                 size_t *column,
-                 int *last_was_cr)
-{
-    if (c == '\r'){
-        (*line)++;
-        *column = 0;
-        *last_was_cr = 1;
-    } else if (c == '\n') {
-        if (*last_was_cr) {
-            *last_was_cr = 0;
-        } else {
-            (*line)++;
-            *column = 0;
-        }
-    } else {
-        (*column)++;
-        *last_was_cr = 0;
-    }
-}
-
-/* */
+/* Funcion auxiliar que construye, imprime y libera un token */
 static int
 emit_token(TokenType type,
            const char *lexeme,
@@ -88,16 +30,115 @@ emit_token(TokenType type,
     return 1;
 }
 
-/* */
-static TokenType
-composed_token_type(int c,
-                    FILE *file,
-                    char *lexeme,
-                    size_t *line,
-                    size_t *column,
-                    int *last_was_cr)
+/* Inicializamos la estructura lexer para empezar a leer el archivo */
+static void
+lexer_init(Lexer *lex,
+           FILE *file)
 {
-    int next = fgetc(file);
+    lex->file = file;
+    lex->line = 1;
+    lex->column = 0;
+    lex->last_was_cr = 0;
+    //
+    lex->current = fgetc(file);
+}
+
+/* Devuelve el caracter aun no consumido, sin leer del archivo */
+static int
+lexer_peek(Lexer *lex)
+{
+    return lex->current;
+}
+
+/* Leemos un caracter del archivo y actualiza linea/columna segun corresponda */
+static int
+lexer_advance(Lexer *lex)
+{
+    int c = lex->current;
+    
+    if (c != EOF) {
+        if (c == '\r'){
+            (lex->line)++;
+            lex->column = 0;
+            lex->last_was_cr = 1;
+        } else if (c == '\n') {
+            if (lex->last_was_cr) {
+                lex->last_was_cr = 0;
+            } else {
+                (lex->line)++;
+                lex->column = 0;
+            }
+        } else {
+            (lex->column)++;
+            lex->last_was_cr = 0;
+        }
+        lex->current = fgetc(lex->file);
+    }
+    
+    return c;
+}
+
+/* Escaneamos caracter por caracter en busca de un identificador o palabra reservada */
+static int
+scan_keyword(Lexer *lex,
+             int first_char,
+             size_t token_line,
+             size_t token_column)
+{
+    char buffer[64];
+    size_t len = 0;
+    TokenType kw_type;
+    
+    buffer[len++] = (char)first_char;
+    while (lexer_peek(lex) != EOF &&
+           (isalnum(lexer_peek(lex)) || lexer_peek(lex) == '_')) {
+        if (len + 1 >= sizeof(buffer)) {
+            fprintf(stderr, "Error: identificador demasiado largo.\n");
+            return 0;
+        }
+        buffer[len++] = (char)lexer_advance(lex);
+    }
+    buffer[len] = '\0';
+
+    if (lookup_keyword(buffer, &kw_type))
+        return emit_token(kw_type, buffer, token_line, token_column);
+    
+    return emit_token(IDENTIFIER, buffer, token_line, token_column);
+}
+
+/* Escaneamos caracter por caracter en busca de un entero */
+static int
+scan_integer(Lexer *lex,
+             int first_char,
+             size_t token_line,
+             size_t token_column)
+{
+    char buffer[64];
+    size_t len = 0;
+
+    buffer[len++] = (char)first_char;
+    while (lexer_peek(lex) != EOF && isdigit(lexer_peek(lex))) {
+        if (len + 1 >= sizeof(buffer)) {
+            fprintf(stderr, "Error: número demasiado largo.\n");
+            return 0;
+        }
+        buffer[len++] = (char)lexer_advance(lex);
+    }
+    buffer[len] = '\0';
+        
+    return emit_token(INTEGER, buffer, token_line, token_column);
+}
+
+/*
+ * Comprobamos si =,<,>,!,&,| forman un operador compuesto (==, <=, >=, !=, &&, ||)
+ * o quedan como su version simple.
+ */
+static TokenType
+scan_operator(Lexer *lex,
+              int c,
+              char* lexeme)
+{
+    int next = lexer_peek(lex);
     TokenType type;
     int consumed_next = 0;
 
@@ -156,29 +197,25 @@ composed_token_type(int c,
     }
 
     if (consumed_next) {
+        lexer_advance(lex);
         lexeme[0] = (char)c;
         lexeme[1] = (char)next;
         lexeme[2] = '\0';
-        advance_position(next, line, column, last_was_cr);
     } else {
         lexeme[0] = (char)c;
-        lexeme[1] = '\0';
-        if (next != EOF) {
-            ungetc(next, file);
-        }
+        lexeme[1] = '\0';;
     }
 
     return type;
 }
 
-/* */
+/* Escaneamos un caracter para verificar que tipo de simbolo simple es */
 static int
-simple_token_type(int c,
-                  TokenType *type)
+scan_simple(int c,
+            TokenType *type)
 {
-    if (type == NULL) {
+    if (type == NULL)
         return 0;
-    }
     
     switch (c) {
     case '+':
@@ -189,7 +226,6 @@ simple_token_type(int c,
         break;
     case '*':
         *type = STAR;
-        break;
         break;
     case '(':
         *type = LPAREN;
@@ -213,130 +249,85 @@ simple_token_type(int c,
     return 1;
 }
 
-/* */
+/* Descartamos el contenido de un comentario hasta \n o EOF */
+static void
+skip_comment_content(Lexer *lex)
+{
+    while (lexer_peek(lex) != EOF && lexer_peek(lex) != '\n')
+        lexer_advance(lex);
+    if (lexer_peek(lex) == '\n')
+        lexer_advance(lex);
+}
+
+/* Funcion principal que comienza el escaneo de un archivo para ser procesado por el lexer */
 int
 lexer_scan(FILE *file)
 {
-    int c = 0;
-    size_t line = 1;
-    size_t column = 0;
-    int last_was_cr = 0;
+    int c;
+    Lexer lex;
 
     if (file == NULL)
         return 2;
 
-    while ((c = fgetc(file)) != EOF) {
-        size_t token_line = line;
-        size_t token_column = column;
+    lexer_init(&lex, file);
+    
+    while ((c = lexer_peek(&lex)) != EOF) {
+        size_t token_line = lex.line;
+        size_t token_column = lex.column;
         TokenType type;
 
-        advance_position(c, &line, &column, &last_was_cr);
-
+        lexer_advance(&lex);
+                
         if (is_ignored_space(c))
             continue;
 
         //Comentarios
         if (c == '/') {
-            int next = fgetc(file);
-
-            if (next == '/') {
-                int i;
-                
-                advance_position(next, &line, &column, &last_was_cr);
-                while ((i = fgetc(file)) != EOF && i != '\n')
-                    advance_position(i, &line, &column, &last_was_cr);
-                if (i == '\n')
-                    advance_position(i, &line, &column, &last_was_cr);
+            if (lexer_peek(&lex) == '/') {
+                lexer_advance(&lex);
+                skip_comment_content(&lex);
                 continue;
             }
-            
-            if (next != EOF)
-                ungetc(next, file);
             if (!emit_token(SLASH, "/", token_line, token_column))
                 return 2;
             continue;
         }
 
-        //Compuestos
+        //Operadores
         if (strchr("=<>!&|", c) != NULL) {
             char lexeme[3];
-            type = composed_token_type(c, file, lexeme, &line, &column, &last_was_cr);
-            
+            type = scan_operator(&lex, c, lexeme);
             if (!emit_token(type, lexeme, token_line, token_column))
                 return 2;
-            
             continue;
         }
 
         //Numeros enteros
         if (isdigit(c)) {
-            char buffer[64];
-            size_t len = 0;
-            int next;
-
-            buffer[len++] = (char)c;
-            while ((next = fgetc(file)) != EOF && isdigit(next)) {
-                if (len + 1 >= sizeof(buffer)) {
-                    fprintf(stderr, "Error: número demasiado largo.\n");
-                    return 2;
-                }
-                buffer[len++] = (char)next;
-                advance_position(next, &line, &column, &last_was_cr);
-            }
-            buffer[len] = '\0';
-
-            if (next != EOF)
-                ungetc(next, file);
-            if (!emit_token(INTEGER, buffer, token_line, token_column))
+            if (!scan_integer(&lex, c, token_line, token_column))
                 return 2;
-            
             continue;
         }
-
+        
         //Identificadores y palabras reservadas
         if (isalpha(c) || c == '_') {
-            char buffer[64];
-            size_t len = 0;
-            int next;
-            TokenType kw_type;
-
-            buffer[len++] = (char)c;
-            while ((next = fgetc(file)) != EOF &&
-                   (isalnum(next) || next == '_')) {
-                if (len + 1 >= sizeof(buffer)) {
-                    fprintf(stderr, "Error: identificador demasiado largo.\n");
-                    return 2;
-                }
-                buffer[len++] = (char)next;
-                advance_position(next, &line, &column, &last_was_cr);
-            }
-            buffer[len] = '\0';
-
-            if (next != EOF)
-                ungetc(next, file);
-
-            if (lookup_keyword(buffer, &kw_type)) {
-                if (!emit_token(kw_type, buffer, token_line, token_column))
-                    return 2;
-            } else {
-                if (!emit_token(IDENTIFIER, buffer, token_line, token_column))
-                    return 2;
-            }
+            if (!scan_keyword(&lex, c, token_line, token_column))
+                return 2;
             continue;
         }
         
         //Simples
-        if (simple_token_type(c, &type)) {
+        if (scan_simple(c, &type)) {
             char lexeme[2] = {(char)c, '\0'};
             if (!emit_token(type, lexeme, token_line, token_column))
                 return 2;
             continue;
         }        
-        
+
+        //Errores lexicos
         char lexeme[2] = {(char)c, '\0'};
          if (!emit_token(ERROR, lexeme, token_line, token_column))
              return 2;
-        continue;
     }
 
     if (ferror(file)) {
@@ -344,7 +335,8 @@ lexer_scan(FILE *file)
         return 2;
     }
 
-    if (!emit_token(TOKEN_EOF, "", line, column))
+    if (!emit_token(TOKEN_EOF, "", lex.line, lex.column))
         return 2;
+    
     return 0;
 }
