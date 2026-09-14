@@ -1,0 +1,5 @@
+2:0 WHILE while
+2:6 INT int
+2:10 IDENTIFIER ifif
+2:15 ELSE else
+3:19 TOKEN_EOF

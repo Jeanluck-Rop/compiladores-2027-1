@@ -1,5 +1,6 @@
 #include "lexer/lexer.h"
 #include "lexer/keywords.h"
+#include "lexer/buffer_manage.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -39,13 +40,12 @@ lexer_init(Lexer *lex,
     lex->line = 1;
     lex->column = 0;
     lex->last_was_cr = 0;
-    //
     lex->current = fgetc(file);
 }
 
 /* Devuelve el caracter aun no consumido, sin leer del archivo */
 static int
-lexer_peek(Lexer *lex)
+lexer_check(Lexer *lex)
 {
     return lex->current;
 }
@@ -54,7 +54,7 @@ lexer_peek(Lexer *lex)
 static int
 lexer_advance(Lexer *lex)
 {
-    int c = lex->current;
+    int c = lexer_check(lex);
     
     if (c != EOF) {
         if (c == '\r'){
@@ -85,25 +85,39 @@ scan_keyword(Lexer *lex,
              size_t token_line,
              size_t token_column)
 {
-    char buffer[64];
-    size_t len = 0;
+    TextBuffer buffer;
     TokenType kw_type;
+    int status;
+
+    if (!buffer_init(&buffer, 16)) {
+        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+        return 0;
+    }
     
-    buffer[len++] = (char)first_char;
-    while (lexer_peek(lex) != EOF &&
-           (isalnum(lexer_peek(lex)) || lexer_peek(lex) == '_')) {
-        if (len + 1 >= sizeof(buffer)) {
-            fprintf(stderr, "Error: identificador demasiado largo.\n");
+    if (!buffer_append(&buffer, (char)first_char)) {
+        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+        buffer_free(&buffer);
+        return 0;
+    }
+
+    while (lexer_check(lex) != EOF
+           && (isalnum(lexer_check(lex))
+               || lexer_check(lex) == '_')) {
+        if (!buffer_append(&buffer, (char)lexer_advance(lex))) {
+            fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+            buffer_free(&buffer);
             return 0;
         }
-        buffer[len++] = (char)lexer_advance(lex);
     }
-    buffer[len] = '\0';
 
-    if (lookup_keyword(buffer, &kw_type))
-        return emit_token(kw_type, buffer, token_line, token_column);
-    
-    return emit_token(IDENTIFIER, buffer, token_line, token_column);
+    if (lookup_keyword(buffer.data, &kw_type))
+        status = emit_token(kw_type, buffer.data, token_line, token_column);
+    else {
+        status = emit_token(IDENTIFIER, buffer.data, token_line, token_column);
+    }
+
+    buffer_free(&buffer);
+    return status;
 }
 
 /* Escaneamos caracter por caracter en busca de un entero */
@@ -113,20 +127,31 @@ scan_integer(Lexer *lex,
              size_t token_line,
              size_t token_column)
 {
-    char buffer[64];
-    size_t len = 0;
+    TextBuffer buffer;
+    int status;
 
-    buffer[len++] = (char)first_char;
-    while (lexer_peek(lex) != EOF && isdigit(lexer_peek(lex))) {
-        if (len + 1 >= sizeof(buffer)) {
-            fprintf(stderr, "Error: número demasiado largo.\n");
+    if (!buffer_init(&buffer, 16)) {
+        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+        return 0;
+    }
+    
+    if (!buffer_append(&buffer, (char)first_char)) {
+        fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+        buffer_free(&buffer);
+        return 0;
+    }
+    
+    while (lexer_check(lex) != EOF && isdigit(lexer_check(lex))) {
+        if (!buffer_append(&buffer, (char)lexer_advance(lex))) {
+            fprintf(stderr, "Error: no se pudo reservar memoria.\n");
+            buffer_free(&buffer);
             return 0;
         }
-        buffer[len++] = (char)lexer_advance(lex);
     }
-    buffer[len] = '\0';
-        
-    return emit_token(INTEGER, buffer, token_line, token_column);
+    status = emit_token(INTEGER, buffer.data, token_line, token_column);
+    
+    buffer_free(&buffer);
+    return status;
 }
 
 /*
@@ -138,7 +163,7 @@ scan_operator(Lexer *lex,
               int c,
               char* lexeme)
 {
-    int next = lexer_peek(lex);
+    int next = lexer_check(lex);
     TokenType type;
     int consumed_next = 0;
 
@@ -203,7 +228,7 @@ scan_operator(Lexer *lex,
         lexeme[2] = '\0';
     } else {
         lexeme[0] = (char)c;
-        lexeme[1] = '\0';;
+        lexeme[1] = '\0';
     }
 
     return type;
@@ -253,9 +278,9 @@ scan_simple(int c,
 static void
 skip_comment_content(Lexer *lex)
 {
-    while (lexer_peek(lex) != EOF && lexer_peek(lex) != '\n')
+    while (lexer_check(lex) != EOF && lexer_check(lex) != '\n')
         lexer_advance(lex);
-    if (lexer_peek(lex) == '\n')
+    if (lexer_check(lex) == '\n')
         lexer_advance(lex);
 }
 
@@ -271,7 +296,7 @@ lexer_scan(FILE *file)
 
     lexer_init(&lex, file);
     
-    while ((c = lexer_peek(&lex)) != EOF) {
+    while ((c = lexer_check(&lex)) != EOF) {
         size_t token_line = lex.line;
         size_t token_column = lex.column;
         TokenType type;
@@ -283,7 +308,7 @@ lexer_scan(FILE *file)
 
         //Comentarios
         if (c == '/') {
-            if (lexer_peek(&lex) == '/') {
+            if (lexer_check(&lex) == '/') {
                 lexer_advance(&lex);
                 skip_comment_content(&lex);
                 continue;
@@ -326,8 +351,8 @@ lexer_scan(FILE *file)
 
         //Errores lexicos
         char lexeme[2] = {(char)c, '\0'};
-         if (!emit_token(ERROR, lexeme, token_line, token_column))
-             return 2;
+        if (!emit_token(ERROR, lexeme, token_line, token_column))
+            return 2;
     }
 
     if (ferror(file)) {

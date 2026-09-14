@@ -1,12 +1,12 @@
-# Práctica 1: Infraestructura básica del analizador léxico
+# Práctica 2: Analizador léxico completo de MiniC
 
 ## Información general
 
 | Campo        | Información  |
 |--------------|--------------|
 | Asignatura   | Compiladores |
-| No. práctica | 1            |
-| Equipo       | Equipo RPRJ  |
+| No. práctica | 2            |
+| Equipo       | Equipo 14    |
 
 
 ## Integrantes
@@ -87,74 +87,41 @@ make test
 
 ## Funcionalidades implementadas
 
-`**FALTA ESTO**`
+- Identificadores (`[a-zA-Z_][a-zA-Z0-9_]*`), distinguidos de palabras reservadas (`int`, `bool`, `if`,
+  `else`, `while`, `print`) y de literales booleanos (`true`, `false`).
+- Operadores compuestos `==`, `!=`, `<=`, `>=`, `&&`, `||`, con su versión simple correspondiente cuando
+  aplica (`=`, `<`, `>`).
+- Comentarios de una línea (`//`), ignorados hasta el fin de línea o el fin del archivo.
+- Lexemas de longitud arbitraria (enteros e identificadores), gracias a un buffer dinámico.
+- Recuperación tras un token `ERROR`: el análisis continúa sin detenerse.
 
-- [ ] Lectura del archivo fuente.
-- [ ] Sistema de tokens.
-- [ ] Seguimiento de línea y columna.
-- [ ] Manejo de espacios en blanco.
-- [ ] Símbolos simples.
-- [ ] Números enteros.
-- [ ] Caracteres no reconocidos mediante `ERROR`.
-- [ ] Final del archivo mediante `TOKEN_EOF`.
+Más detalles sobre diseño e implementación en el reporte de la práctica.
 
 ## Pruebas
 
-Simplemente implementamos una prueba para el caso particular de dos simbolos contiguos, como bien se menciona
-en las limitantes y/o problemas del reporte, esta prueba busca mostrar que por el momento no tenemos forma de 
-detectar los casos para `==`, `<=` y `>=` por ejemplo. Por lo que para probar ambas por separado (las pruebas ya
-establecidas y las que el equipo implemento) debemos hacer lo siguiente:
+- `tests/public/p1/`: pruebas públicas de la Práctica 1 (`make test-p1`).
+- `tests/public/p2/`: pruebas públicas de la Práctica 2 (`make test-p2`).
+- `tests/unit_tests/`: pruebas propias del equipo, enfocadas en casos límite y de error (`make test-unit`).
+- `make test-cli` corre `test-p1` y `test-p2` juntos; `make test` corre `test-cli` y `test-unit`.
 
-- **`tests/public/`** casos de prueba proporcionados por la práctica, se ejecutan con:
-```
-make test-cli
-```
-- **`tests/unit_tests/`** casos adicionales, se ejecutan con:
-```
-make test-unit
-```
+Más detalles de cada caso en la sección "Resultados y pruebas" del reporte.
 
 ## Problemas conocidos
 
-Las limitaciones y problemas que tenemos en cuenta de esta práctica, es que solo se queda en la fase
-analizadora y clasificadora del código fuente, no es posible aún darle un significado a esto, aún no podemos
-darle la estructura que el análisis sintáctico y semántico otorgan a un compilador. Mucho menos una traducción 
-a código objetivo. 
-
-Sin embargo ya se tiene una buena base para implementarlos de manera incremental sin problema alguno. 
-Aunque si es necesario notar que una limitante más que se tiene en la práctica 1, es que aún no diferenciamos 
-entre caracteres que compartan símbolos, como `=` y `==`, aún no hay una manera específica de diferenciarlos.
-Al momento `==` se tomaría como dos `=`.
-
-Si estas no eran las limitantes esperadas por ser demasiado obvias, entonces por parte del equipo
-no se conocen problemas adicionales a las limitaciones propias del alcance de la Práctica 1.
+- No se valida que un entero reconocido quepa en el rango de un tipo numérico concreto (por ejemplo,
+  overflow de `int`); se considera responsabilidad de una etapa posterior del compilador.
+- No hay límite de longitud para identificadores o enteros más allá de la memoria disponible del sistema.
 
 ## Notas de ejecución
 
-El comando:
+- `./minic <programa>.mc` imprime la secuencia de tokens en `stdout`; los diagnósticos internos (errores
+  de lectura o de memoria) se imprimen por separado en `stderr`.
+- Como los archivos de prueba están en rutas como `tests/public/p2/inputs/` o `tests/unit_tests/inputs/`,
+  hay que indicar la ruta completa al ejecutar manualmente, por ejemplo:
 ```
-make test
+./minic tests/public/p2/inputs/p01_identifiers.mc
 ```
-Corre primero `test-cli` y después `test-unit`. Ambos comparan la salida de `minic` contra los
-archivos esperados (`tests/public/expected/*.out` y `tests/unit_tests/expected/*.out`
-respectivamente), e imprimen `PASS`/`FAIL` por cada caso junto con un resumen final. Si algún
-caso de cualquiera de las dos carpetas falla, `make test` termina con código de salida distinto
-de cero.
 
-Mientras que, el comando:
-```
-./minic <programa>.mc
-```
-Imprime la secuencia de tokens reconocidos en `stdout`, los diagnósticos internos (errores de
-lectura, memoria, etc.) se imprimen por separado en `stderr`.
-
-Las salidas de prueba (`.actual`) se generan en `build/`, tanto para `test-cli` como para
-`test-unit`.
-
-Como nota extra, dado que los archivos `.mc` se encuentran en rutas como
-**tests/public/inputs/** o **tests/unit_tests/inputs/**, el comando `./minic <programa>.mc` no
-debe ejecutarse de ese modo a secas, sino con la ruta al archivo de entrada, ejemplo:
-```
-./minic tests/unit_tests/inputs/p_double_char.mc
-```
-A menos que algún archivo `.mc` se encuentre en el directorio actual del ejecutable.
+- Las salidas de prueba (`.actual`) se generan en `build/`, tanto para `test-p1`, `test-p2` como
+  `test-unit`.
+- Requiere `gcc` con soporte para C11 (`-std=c11`); se compila con `-Wall -Wextra -Wpedantic`.
