@@ -20,31 +20,49 @@
 ## Estructura del proyecto
 
 ```
-Practica01_EquipoRPRJ/
+Practica02_Equipo14/
 ├── CHANGELOG.md
 ├── include
-│   ├── lexer
-│   ├── lexer.h
-│   └── token.h
+│   └── lexer
+│       ├── buffer_manage.h
+│       ├── keywords.h
+│       ├── lexer.h
+│       └── token.h
 ├── Makefile
-├──  mv
 ├── README.md
+├── reporte.pdf
 ├── src
-│   ├── main.c
-│   └── minic_lexer
-│       ├── lexer.c
-│       └── token.c
+│   ├── lexer
+│   │   ├── buffer_manage.c
+│   │   ├── keywords.c
+│   │   ├── lexer.c
+│   │   └── token.c
+│   └── main.c
 └── tests
     ├── public
-    │   ├── expected
-    │   ├── inputs
-    │   └── README.md
+    │   ├── p1
+    │   │   ├── expected
+    │   │   └── inputs
+    │   ├── p2
+    │   │   ├── expected
+    │   │   └── inputs
+    │   ├── README.md
+    │   └── run_public_tests.sh
     ├── README.md
     └── unit_tests
         ├── expected
-        │   └── p_double_char.out
+        │   ├── ut_comment_literal_newline.out
+        │   ├── ut_compound_ops_and_comments.out
+        │   ├── ut_dense_no_spaces.out
+        │   ├── ut_error_recovery_mixed.out
+        │   ├── ut_slashes.mc
+        │   └── ut_slashes.out
         └── inputs
-            └── p_double_char.mc
+            ├── ut_comment_literal_newline.mc
+            ├── ut_compound_ops_and_comments.mc
+            ├── ut_dense_no_spaces.mc
+            ├── ut_error_recovery_mixed.mc
+            └── ut_slashes.mc
 ```
 
 
