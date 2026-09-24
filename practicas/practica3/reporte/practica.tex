@@ -1,0 +1,262 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float, enumitem, array, listings}
+\usepackage{geometry, amsmath, amssymb, amsthm}
+\usepackage{graphicx, xcolor, fancyhdr, fancyvrb}
+\usepackage[normalem]{ulem}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+\newcommand{\minic}{
+  {M\footnotesize INI\normalsize C}
+}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoCen}{Práctica 3}
+\newcommand{\encabezadoDer}{\textit{Analizador sintáctico descendente recursivo}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[C]{\encabezadoCen}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ========================================
+% CONFIGURACION Y COLORES LSTLISTINGS
+% ========================================
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{links}{HTML}{0D1894}
+
+\definecolor{backcolour}{rgb}{0.93, 0.93, 0.93}
+\definecolor{codegreen}{rgb}{0, 0.6, 0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0, 0.82}
+\definecolor{keywordcolor}{rgb}{0.5, 0.0, 0.5}
+\definecolor{codeorg}{HTML}{DB9400}
+\definecolor{linkblue}{HTML}{1A167A}
+\definecolor{redcolor}{HTML}{7A1805}
+\definecolor{greencolor}{HTML}{0E8F10}
+\definecolor{greeblucolor}{HTML}{0E6657}
+\definecolor{orgcolor}{HTML}{B86D00}
+\definecolor{highlightyellow}{HTML}{FFF176}
+\definecolor{boxgray}{HTML}{F2F2F2}
+\definecolor{borderblue}{HTML}{1A167A}
+
+% ========================================
+% CONFIGURACION LENGUAJES
+% ========================================
+\lstdefinestyle{modernc}{
+    language=C,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=tttt,
+    emph={int,uint32_t,char,double,float,unsigned,void,bool,struct,size_t,
+          Room, Client, pthread_mutex_t, NULL},
+    emphstyle=\color{codeorg}\bfseries
+}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Objetivo}
+% ================================================================
+
+\begin{quote}
+ Reporte objetivo.
+\end{quote}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Evolución respecto de la Práctica 2}
+% ================================================================
+
+Reporte evolución.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{function}}]
+int fun(void)
+{
+}
+\end{lstlisting}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Arquitectura e interfaz}
+% ================================================================
+
+Reporte Arquitectura e interfaz.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Descenso recursivo y gramática}
+% ================================================================
+
+Reporte descenso recursivo.
+
+\begin{verbatim}
+verbatim
+\end{verbatim}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Expresiones}
+% ================================================================
+
+Reporte expresiones.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Diagnósticos y recuperación}
+% ================================================================
+
+Reporte diagnósticos y recuperación.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Resultados y pruebas}
+% ================================================================
+
+Reporte resultados y pruebas.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Problemas encontrados}
+% ================================================================
+
+Reporte problemas encontrados.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Conclusiones}
+% ================================================================
+
+Reporte conclusiones.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{División del trabajo}
+% ================================================================
+
+Reporte división del trabajo.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% ================================================================
+\section*{Uso de herramientas de Inteligencia Artificial}
+% ================================================================
+
+Reporte uso de herramientas IA.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+
+\begin{thebibliography}{99}
+\bibitem{ref1}
+  ppreference.com. (n.d.). C language. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+
+\bibitem{ref2}
+  ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+
+\bibitem{ref3}
+  ppreference.com. (n.d.). Strings library, strchr. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/strchr}}}
+
+\bibitem{ref4}
+  ppreference.com. (n.d.). Strings library, isalpha. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isalpha}}}
+
+\bibitem{ref4}
+  ppreference.com. (n.d.). Strings library, isalnum. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isalnum}}}
+\end{thebibliography}
+
+\end{document}
