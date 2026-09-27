@@ -102,7 +102,27 @@
 % ================================================================
 
 \begin{quote}
- Reporte objetivo.
+  En esta práctica nuestro objetivo fue implementar un analizador sintáctico descendente recursivo para
+  \minic, capaz de procesar los tokens que produce el Lexer de la Práctica 2 y determinar si el programa puede
+  derivarse a partir de la gramática establecida del lenguaje.\\
+
+  Este Parser ocupa el lugar intermedio entre el Lexer y la futura construcción del AST, en esta entrega solo
+  validamos la estructura, por lo que no construimos árboles de sintaxis, tabla de símbolos ni validaciones de
+  tipos; sin embargo, cada función del parser corresponde ya a un no terminal de la gramática, de modo que en
+  la siguiente práctica bastará con que cada una devuelva el nodo que reconoce, sin cambiar el recorrido.
+
+  Concretamente, el objetivo es:
+
+  \begin{enumerate}[label=\arabic*.]
+  \item Convertir el lexer en un productor incremental de tokens, sin impresión como efecto secundario
+  \item Mantener un token de anticipación para decidir qué producción aplicar
+  \item Reconocer declaraciones, asignaciones, impresión, condicionales, ciclos y bloques
+  \item Reconocer expresiones respetando la precedencia y asociatividad publicadas
+  \item Reportar errores léxicos y sintácticos con su posición en \texttt{stderr}
+  \item Recuperarnos de los errores para seguir analizando el resto del archivo
+  \item Verificar que toda la entrada se consuma hasta \texttt{TOKEN\_EOF}
+  \item Informar el resultado general en \texttt{stdout} con un código de salida adecuado
+  \end{enumerate}
 \end{quote}
 
 
@@ -115,13 +135,128 @@
 \section*{Evolución respecto de la Práctica 2}
 % ================================================================
 
-Reporte evolución.
+\subsection*{Módulos modificados o agregados}
 
-\begin{lstlisting}[style=modernc, caption={\texttt{function}}]
-int fun(void)
+\begin{itemize}
+\item \texttt{lexer.h} y \texttt{lexer.c}: se reemplazó \texttt{lexer\_scan} por una interfaz incremental
+  que entrega un token por llamada, y se agregó la \texttt{enum} \texttt{LexerStatus}.
+\item \texttt{main.c}: ahora coordina la inicialización del lexer y del parser, el análisis, la liberación de
+  recursos y el código de salida.
+\item \texttt{parser.h}, \texttt{parser\_internal.h} y \texttt{parser.c}: módulos nuevos con el estado del
+  parser y las operaciones sobre el flujo de tokens.
+\item \texttt{grammar.h} y \texttt{grammar.c}: módulo nuevo con una función por cada no terminal de la
+  gramática.
+\item \texttt{token}, \texttt{keywords} y \texttt{buffer\_manage} se conservan sin cambios.
+\end{itemize}
+
+\subsection*{Interfaz incremental incorporada al lexer}
+
+En la Práctica 2, nuestro \texttt{lexer\_scan} en un ciclo que recorría el archivo completo e imprimía cada
+token en cuanto lo reconocía. Lo tuvimos que cambiar para el parser, ahora el lexer entrega \emph{un} token cada
+vez que se le pide y conserve su estado (archivo, posición y caracter precargado) para la siguiente llamada.
+Por ello la interfaz pública quedó:
+
+\begin{itemize}
+\item \texttt{int lexer\_init(Lexer *lexer, FILE *source)}: antes era una función \texttt{static} que usaba
+  \texttt{lexer\_scan} internamente, ahora es pública, recibe directamente el archivo a procesar, valida sus
+  argumentos y precarga el primer caracter.
+\item \texttt{LexerStatus lexer\_next\_token(Lexer *lexer, Token *out)}: sustituye a \texttt{lexer\_scan}.
+  Conserva exactamente las mismas ramas de clasificación, pero cada una termina con un \texttt{return} en
+  cuanto se forma el primer token, el ciclo interno solo se repite para saltar espacios y comentarios. Al
+  llegar al final devuelve \texttt{TOKEN\_EOF}, y las llamadas posteriores lo vuelven a devolver.
+\item \texttt{void lexer\_destroy(Lexer *lexer)}: deja el lexer en un estado seguro, no libera memoria
+  porque el lexer no reserva ninguna ni es dueño del archivo.
+\item \texttt{int lexer\_print\_tokens(FILE *source)}: conserva el comportamiento de las prácticas 1 y 2,
+  pero construido sobre la nueva interfaz, solo se usa con la opción \texttt{-t} de \texttt{main.c}.
+\end{itemize}
+
+Para que el que pida un token pueda distinguir entre un token válido y un fallo del propio Lexer, agregamos
+\texttt{LexerStatus}:
+
+\begin{lstlisting}[style=modernc, caption={Enumeración \texttt{LexerStatus}, definida en \texttt{lexer.h}.}]
+/* Resultado de pedir un token */
+typedef enum {
+    LEXER_STATUS_OK,
+    LEXER_STATUS_IO_ERROR,
+    LEXER_STATUS_MEMORY_ERROR
+} LexerStatus;
+\end{lstlisting}
+
+\bigskip
+
+Así quedan separadas dos clases de fallo, un caracter inválido del programa fuente sigue siendo un token
+\texttt{ERROR} entregado con \texttt{LEXER\_STATUS\_OK}, mientras que un error de lectura o de memoria
+impide obtener el token y se informa con el estado correspondiente.
+
+\subsection*{Eliminación de la impresión obligatoria de tokens}
+
+\begin{itemize}
+\item \texttt{make\_token}: sustituye a \texttt{emit\_token}, antes construíamos, imprimíamos y
+  destruíamos el token en la misma función, ahora \texttt{make\_token} solo lo construye en \texttt{out} y
+  devuelve \texttt{LEXER\_STATUS\_MEMORY\_ERROR} si \texttt{token\_init} falla.
+\item \texttt{scan\_keyword} y \texttt{scan\_integer}: ahora reciben el \texttt{Token *out} donde deben
+  dejar el resultado y devuelven un \texttt{LexerStatus}. Ante un fallo de memoria regresan
+  \texttt{LEXER\_STATUS\_MEMORY\_ERROR} sin imprimir nada, el mensaje lo emite quien consume el token.
+\end{itemize}
+
+De esta forma, solicitar un token nunca escribe en \texttt{stdout} ni en \texttt{stderr}, la única función que
+imprime tokens es \texttt{lexer\_print\_tokens}.
+
+\subsection*{Refactorizaciones realizadas y su justificación}
+
+Además de lo anterior, corregimos \texttt{skip\_comment\_content}. En la Práctica 2 la función solo se
+detenía en \texttt{\textbackslash n} y además lo consumía:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{skip\_comment\_content} en la Práctica 2 y en la Práctica 3.}]
+/* Practica 2: descartamos el contenido de un comentario hasta \n o EOF */
+static void
+skip_comment_content(Lexer *lex)
 {
+    while (lexer_check(lex) != EOF && lexer_check(lex) != '\n')
+        lexer_advance(lex);
+    if (lexer_check(lex) == '\n')
+        lexer_advance(lex);
+}
+
+/* Practica 3: descartamos el contenido de un comentario hasta \n, \r o EOF */
+static void
+skip_comment_content(Lexer *lex)
+{
+    while (lexer_check(lex) != EOF && lexer_check(lex) != '\n' && lexer_check(lex) != '\r')
+        lexer_advance(lex);
 }
 \end{lstlisting}
+
+\bigskip
+
+Con finales de línea que usan solo '\texttt{\textbackslash r}', el comentario se tragaba las líneas
+siguientes. Ahora el comentario termina en cualquiera de los dos caracteres, y el salto de línea se deja para
+el ciclo de \texttt{lexer\_next\_token}, que ya lo ignora como espacio en blanco.
+
+Otros cambios menores en \texttt{lexer\_next\_token}: la verificación de \texttt{ferror} se movió a la rama de
+fin de archivo, y agregamos la guarda \texttt{c != '\textbackslash 0'} antes de \texttt{strchr}, ya que
+\texttt{strchr} encuentra el terminador de la cadena y habría clasificado un byte nulo como operador.\\
+
+En \texttt{main.c} ahora:
+
+\begin{itemize}
+\item Validamos que se reciba exactamente un archivo, mostrando \texttt{Uso: ./minic <archivo.mc>} en caso
+  contrario, y que el archivo pueda abrirse.
+\item \texttt{parse\_file} inicializa el lexer y el parser, analiza el programa, libera ambos y traduce el
+  resultado a un código de salida: \texttt{0} si el programa es correcto, \texttt{1} si tiene errores léxicos
+  o sintácticos, y \texttt{2} para errores de uso, apertura, lectura o memoria.
+\item Conservamos la opción \texttt{-t} para imprimir tokens, únicamente como regresión de las prácticas
+  anteriores.
+\end{itemize}
+
+\subsection*{Funcionalidades léxicas conservadas}
+
+Se conservan la lectura del archivo, el sistema de tokens, el almacenamiento de lexemas, el seguimiento de
+línea y columna (incluyendo \texttt{\textbackslash r\textbackslash n}), el reconocimiento de identificadores,
+palabras reservadas, literales enteros y booleanos, operadores simples y compuestos y delimitadores, el
+manejo de espacios y comentarios, la detección de errores léxicos, la generación de \texttt{TOKEN\_EOF} y la
+administración de memoria de \texttt{buffer\_manage}. Las pruebas tanto públicas (del ayudante) como las propias
+de las Prácticas 1 y 2 siguen pasando en modo \texttt{-t}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,7 +268,241 @@ int fun(void)
 \section*{Arquitectura e interfaz}
 % ================================================================
 
-Reporte Arquitectura e interfaz.
+\subsection*{Organización del módulo \texttt{parser}}
+
+Dividimos el parser en dos niveles, cada uno con su propio archivo fuente:
+
+\begin{itemize}
+\item \texttt{parser.c}: el \emph{flujo de tokens} pide tokens al Lexer, mantiene el token de
+  anticipación, consume, reporta errores y sincroniza. No sabe nada de la gramática.
+\item \texttt{grammar.c}: la \emph{gramática} una función por no terminal, que solo usa las operaciones de
+  \texttt{parser.c} y nunca toca directamente al lexer.
+\end{itemize}
+
+Y tres encabezados, según quién necesita ver qué:
+
+\begin{itemize}
+\item \texttt{parser.h}: la interfaz pública, lo único que ve \texttt{main.c}.
+\item \texttt{parser\_internal.h}: declara las operaciones auxiliares de \texttt{parser.c} que usa
+  \texttt{grammar.c}. No pueden ser \texttt{static}, porque viven en otro archivo, pero tampoco deben estar en
+  \texttt{parser.h}, porque \texttt{main.c} no tiene por qué avanzar tokens o sincronizar.
+\item \texttt{grammar.h}: declara únicamente \texttt{parse\_program}, el punto de entrada de la gramática, el
+  resto de las funciones de \texttt{grammar.c} son \texttt{static}.
+\end{itemize}
+
+Esta separación también la pensamos para la siguiente práctica, cuando cada función de la gramática
+construya nodos del AST, \texttt{grammar.c} crecerá considerablemente, mientras que el manejo de tokens de
+\texttt{parser.c} no tendrá que modificarse.
+
+La base inicial proporcionada exponía en \texttt{parser.h} las operaciones \texttt{parser\_advance},
+\texttt{parser\_check}, \texttt{parser\_match} y \texttt{parser\_current}, nosotros en cambio redujimos la
+interfaz pública a tres funciones:
+
+\begin{lstlisting}[style=modernc, caption={Interfaz pública de \texttt{parser.h}.}]
+int parser_init(Parser *parser, Lexer *lexer);
+/* Analiza el programa completo: program ::= statement_list TOKEN_EOF */
+ParseResult parser_parse_program(Parser *parser);
+/* Libera los tokens que conserve el parser, exactamente una vez */
+void parser_destroy(Parser *parser);
+\end{lstlisting}
+
+\bigskip
+
+El motivo es que \texttt{main.c} solo necesita inicializar, analizar y liberar, las demás operaciones son
+detalles internos del recorrido, por lo que pasaron a \texttt{parser\_internal.h}. \texttt{parser\_current}
+dejó de ser necesaria, porque la gramática consulta el \emph{lookahead} con \texttt{parser\_check}, y agregamos
+\texttt{parser\_parse\_program}, la operación que inicia el análisis completo que la base dejaba pendiente.
+
+\subsection*{Representación del estado y token de anticipación}
+
+\begin{lstlisting}[style=modernc, caption={Estructuras \texttt{ParseResult} y \texttt{Parser}, definidas en \texttt{parser.h}.}]
+/* Resultado del analisis completo de un programa */
+typedef enum {
+    PARSE_OK,              /* programa sintacticamente correcto */
+    PARSE_INVALID,         /* hubo errores lexicos o sintacticos */
+    PARSE_INTERNAL_FAILURE /* fallo de E/S o de memoria al pedir tokens */
+} ParseResult;
+
+typedef struct {
+    Lexer *lexer;
+    Token current;        /* token de anticipacion */
+    Token previous;       /* ultimo token consumido */
+    int has_current;
+    int has_previous;
+    int had_error;        /* hubo algun error lexico o sintactico */
+    int panic_mode;       /* suprime errores en cascada hasta sincronizar */
+    int internal_failure; /* el lexer fallo; el analisis se detiene */
+} Parser;
+\end{lstlisting}
+
+\bigskip
+
+Brevemente, \texttt{current} es el token de anticipación con el que decidimos qué producción aplicar, y
+\texttt{previous} conserva el último token consumido; \texttt{has\_current} y
+\texttt{has\_previous} indican si cada campo contiene un token válido que deba liberarse.
+\texttt{had\_error} registra si hubo cualquier error léxico o sintáctico, \texttt{panic\_mode} controla la
+recuperación e \texttt{internal\_failure} detiene el análisis cuando el lexer falla. Finalmente con
+\texttt{ParseResult} traducimos este estado final a uno de tres resultados.
+
+\begin{itemize}
+\item Con \texttt{LEXER\_STATUS\_OK}, \texttt{lexer\_next\_token} entrega un token cuyo lexema fue
+  reservado por \texttt{token\_init}; quien lo recibe adquiere su propiedad.
+\item Con cualquier otro estado, \texttt{out} no es válido y no debe destruirse.
+\item El parser es dueño de \texttt{current} y \texttt{previous} mientras su bandera esté activa. Al
+  avanzar, destruye el \texttt{previous} anterior y \emph{mueve} \texttt{current} a \texttt{previous}, el
+  apuntador al lexema cambia de campo, sin copiarse ni liberarse.
+\item Los tokens \texttt{ERROR} se destruyen en cuanto se reportan, sin llegar a \texttt{current}.
+\item \texttt{parser\_destroy} libera ambos tokens exactamente una vez, incluso si hubo errores o fallos.
+\item El Lexer no reserva memoria propia, y ni este ni el Parser son dueños del archivo, que cierra
+  \texttt{main.c}.
+\end{itemize}
+
+Cuando \texttt{lexer\_next\_token} devuelve un estado distinto de \texttt{LEXER\_STATUS\_OK}, el parser
+imprime el mensaje correspondiente, activa \texttt{internal\_failure} y deja \texttt{has\_current} en cero. A
+partir de ahí, \texttt{parser\_end} devuelve verdadero, las funciones de error dejan de reportar y todas las
+funciones de la gramática se retiran, por lo que el análisis termina sin leer tokens inválidos.
+\texttt{parser\_parse\_program} devuelve entonces \texttt{PARSE\_INTERNAL\_FAILURE} y \texttt{main.c}
+termina con código \texttt{2}.
+
+\subsection*{Funciones de \texttt{parser.c}}
+
+\begin{lstlisting}[style=modernc, caption={Funciones públicas \texttt{parser\_init}, \texttt{parser\_parse\_program} y \texttt{parser\_destroy}.}]
+/* Preparamos el parser, precargando el primer token de anticipacion */
+int
+parser_init(Parser *parser,
+            Lexer *lexer)
+{
+    if (parser == NULL)
+        return 0;
+
+    memset(parser, 0, sizeof(*parser));
+
+    if (lexer == NULL)
+        return 0;
+
+    parser->lexer = lexer;
+    return fetch_token(parser);
+}
+
+/* Analizamos el programa completo y traducimos el estado final a un ParseResult */
+ParseResult
+parser_parse_program(Parser *parser)
+{
+    if (parser == NULL || parser->lexer == NULL || !parser->has_current)
+        return PARSE_INTERNAL_FAILURE;
+
+    parse_program(parser);
+
+    if (parser->internal_failure)
+        return PARSE_INTERNAL_FAILURE;
+    return parser->had_error ? PARSE_INVALID : PARSE_OK;
+}
+
+/* Liberamos los tokens que conserva el parser; el lexer no le pertenece */
+void
+parser_destroy(Parser *parser)
+{
+    if (parser == NULL)
+        return;
+
+    if (parser->has_current) {
+        token_destroy(&parser->current);
+        parser->has_current = 0;
+    }
+    if (parser->has_previous) {
+        token_destroy(&parser->previous);
+        parser->has_previous = 0;
+    }
+    parser->lexer = NULL;
+}
+\end{lstlisting}
+
+\bigskip
+
+\texttt{parser\_init} pone todos los campos en cero \emph{antes} de pedir el primer token, para que
+\texttt{parser\_destroy} sea seguro aunque la inicialización falle. \texttt{parser\_parse\_program} es la
+operación pública que invoca \texttt{main.c}, el \emph{main} llama a \texttt{parse\_program}, el no terminal
+de la gramática, y traduce el estado final del parser a un \texttt{ParseResult}.
+
+\begin{lstlisting}[style=modernc, caption={Operaciones \texttt{parser\_advance}, \texttt{parser\_check} y \texttt{parser\_match}.}]
+/* Consumimos el token actual, moviendolo a previous, y precargamos el siguiente */
+int
+parser_advance(Parser *parser)
+{
+    if (parser == NULL
+        || parser->lexer == NULL
+        || parser->internal_failure)
+        return 0;
+
+    if (parser->has_current && parser->current.type == TOKEN_EOF)
+        return 1;
+
+    if (parser->has_previous) {
+        token_destroy(&parser->previous);
+        parser->has_previous = 0;
+    }
+
+    if (parser->has_current) {
+        parser->previous = parser->current;
+        parser->has_previous = 1;
+        parser->has_current = 0;
+    }
+
+    return fetch_token(parser);
+}
+
+/* Checamos si el token actual es del tipo indicado, sin consumirlo */
+int
+parser_check(const Parser *parser,
+             TokenType type)
+{
+    return parser != NULL
+        && parser->has_current
+        && parser->current.type == type;
+}
+
+/* Consumimos el token actual solo si es del tipo indicado */
+int
+parser_match(Parser *parser,
+             TokenType type)
+{
+    if (!parser_check(parser, type))
+        return 0;
+    parser_advance(parser);
+    return 1;
+}
+\end{lstlisting}
+
+\bigskip
+
+\texttt{parser\_advance} implementa el convenio de propiedad descrito arriba y nunca avanza más allá de
+\texttt{TOKEN\_EOF}, de modo que ningún ciclo puede leer más allá del final. \texttt{parser\_check} consulta el
+\emph{lookahead} sin consumirlo, y \texttt{parser\_match} lo consume solo si coincide, lo que usamos para
+las partes opcionales de la gramática (la inicialización de una declaración, el \texttt{else} y los operadores
+binarios).\\
+
+Las funciones restantes de \texttt{parser.c} son:
+
+\begin{itemize}
+\item \texttt{report\_lexer\_failure(...)}: imprime en \texttt{stderr} el mensaje de un fallo interno del Lexer,
+  de memoria o de lectura.
+  
+\item \texttt{fetch\_token(...)}: pide tokens al lexer hasta obtener uno que no sea   \texttt{ERROR} y lo deja
+  en \texttt{current}. Cada \texttt{ERROR} se reporta, se destruye y marca el programa como inválido, ante un
+  fallo interno activa \texttt{internal\_failure}.
+  
+\item \texttt{parser\_previous(...)}: devuelve el último token consumido, o \texttt{NULL} si aún no hay ninguno.
+  
+\item \texttt{parser\_end(...)}: indica si ya no queda nada por analizar, ya sea porque el \emph{lookahead} es
+  \texttt{TOKEN\_EOF} o porque hubo un fallo interno.
+  
+\item \texttt{parser\_current\_error(...)}: atajo de \texttt{parser\_error} sobre el token actual.
+  
+\item \texttt{parser\_consume(...)}: exige un token del tipo esperado, si está, lo consume y devuelve \texttt{1},
+  si no, reporta el error sin fingir que el token existía, activa \texttt{panic\_mode} y devuelve \texttt{0}.
+\end{itemize}
+
+\texttt{parser\_error} y \texttt{parser\_sync} se describen en la sección de Diagnósticos y Recuperación.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,11 +514,79 @@ Reporte Arquitectura e interfaz.
 \section*{Descenso recursivo y gramática}
 % ================================================================
 
-Reporte descenso recursivo.
+En un Parser descendente recursivo, cada no terminal se implementa como una función que inspecciona el
+\emph{lookahead}, decide qué producción aplicar, consume los terminales esperados e invoca las funciones de los
+no terminales que aparecen en esa producción. Las producciones de sentencias que implementamos son:
 
 \begin{verbatim}
-verbatim
+program         ::= statement_list TOKEN_EOF ;
+statement_list  ::= statement* ;
+statement       ::= declaration | assignment | print_statement
+                  | if_statement | while_statement | block ;
+declaration     ::= type IDENTIFIER ( ASSIGN expression )? SEMICOLON ;
+assignment      ::= IDENTIFIER ASSIGN expression SEMICOLON ;
+print_statement ::= PRINT LPAREN expression RPAREN SEMICOLON ;
+if_statement    ::= IF LPAREN expression RPAREN statement ( ELSE statement )? ;
+while_statement ::= WHILE LPAREN expression RPAREN statement ;
+block           ::= LBRACE statement* RBRACE ;
 \end{verbatim}
+
+Las repeticiones \texttt{*} se traducen en ciclos \texttt{while}, las partes opcionales \texttt{?} en un
+\texttt{parser\_match}, y cada terminal obligatorio en un \texttt{parser\_consume}. Al inicio de
+\texttt{grammar.c} declaramos los prototipos de todas las funciones, porque la gramática es mutuamente
+recursiva, \texttt{parse\_statement} llama a \texttt{parse\_if\_statement}, que vuelve a llamar a
+\texttt{parse\_statement} para su cuerpo, así que no existe un orden de definición en el que todas aparezcan
+antes de usarse.
+
+\begin{lstlisting}[style=modernc, caption={Función \texttt{parse\_program}, único punto de entrada de \texttt{grammar.c}.}]
+/* Reconocemos el programa completo y verificamos que termine en TOKEN_EOF */
+void
+parse_program(Parser *parser)
+{
+    parse_statement_list(parser);
+    if (!parser->internal_failure && !parser_check(parser, TOKEN_EOF))
+        parser_current_error(parser, "el fin del archivo");
+}
+\end{lstlisting}
+
+\bigskip
+
+Las funciones de sentencias son:
+
+\begin{itemize}
+\item \texttt{parse\_statement\_list}: llama a \texttt{parse\_statement} mientras \texttt{parser\_end} sea
+  falso, por lo que un archivo vacío es válido.
+  
+\item \texttt{parse\_statement}: elige la producción con un \texttt{switch} sobre el tipo del lookahead.
+  \texttt{INT} o \texttt{BOOL} inicia una declaración, \texttt{IDENTIFIER} una asignación, \texttt{PRINT}
+  una impresión, \texttt{IF} un condicional, \texttt{WHILE} un ciclo y \texttt{LBRACE} un bloque. Cualquier
+  otro token se reporta como \texttt{se esperaba una sentencia} y se consume. Al final, si quedó activo
+  \texttt{panic\_mode}, llama a \texttt{parser\_sync}.
+  
+\item \texttt{parse\_declaration}: consume el tipo, exige un identificador, acepta opcionalmente
+  \texttt{= expresión} y exige \texttt{;}.
+  
+\item \texttt{parse\_assignment}: consume el identificador y exige \texttt{=}, una expresión y \texttt{;}.
+  
+\item \texttt{parse\_print\_statement}: consume \texttt{print} y exige \texttt{(}, una expresión, \texttt{)}
+  y \texttt{;}.
+  
+\item \texttt{parse\_if\_statement}: consume \texttt{if}, exige la condición entre paréntesis, analiza el
+  cuerpo con \texttt{parse\_statement} y, si el lookahead es \texttt{else}, analiza la rama alternativa. Como
+  el \texttt{if} más interno es el primero en ver el \texttt{else}, este se asocia siempre con el \texttt{if}
+  más cercano que aún no tiene rama \texttt{else}.
+  
+\item \texttt{parse\_while\_statement}: consume \texttt{while}, exige la condición entre paréntesis y analiza
+  el cuerpo con \texttt{parse\_statement}.
+  
+\item \texttt{parse\_block}: consume \texttt{\{}, analiza sentencias hasta encontrar \texttt{\}} o el fin del
+  archivo, y exige el \texttt{\}} de cierre.
+\end{itemize}
+
+En todas ellas, el primer token ya fue verificado por \texttt{parse\_statement}, por eso se consume con
+\texttt{parser\_advance} en lugar de \texttt{parser\_consume}. Si algún \texttt{parser\_consume} falla o una
+expresión deja activo \texttt{panic\_mode}, la función se retira de inmediato y la recuperación queda a cargo
+de \texttt{parse\_statement}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,7 +598,53 @@ verbatim
 \section*{Expresiones}
 % ================================================================
 
-Reporte expresiones.
+Implementamos una función por cada nivel de precedencia, desde el de menor precedencia hasta el de mayor,
+la precedencia sale del anidamiento donde cada nivel obtiene sus operandos llamando al nivel inmediatamente
+superior, así que los operadores de mayor precedencia se reconocen completos antes de volver a los de menor.
+Por ejemplo, en \texttt{5 + 2 * 3}, \texttt{parse\_additive\_expression} pide su segundo operando a
+\texttt{parse\_multiplicative\_expression}, que reconoce \texttt{2 * 3} entero; así la agrupación es
+\texttt{5 + (2 * 3)}.
+
+\begin{itemize}
+\item \texttt{parse\_expression}: punto de entrada que delega en el nivel de menor precedencia.
+  
+\item \texttt{parse\_or\_expression}: operandos de \texttt{parse\_and\_expression} separados por
+  \texttt{||}.
+  
+\item \texttt{parse\_and\_expression}: operandos de \texttt{parse\_equality\_expression} separados por
+  \texttt{\&\&}.
+  
+\item \texttt{parse\_equality\_expression}: operandos de \texttt{parse\_comparison\_expression} separados por
+  \texttt{==} o \texttt{!=}.
+  
+\item \texttt{parse\_comparison\_expression}: operandos de \texttt{parse\_additive\_expression} separados por
+  \texttt{<}, \texttt{<=}, \texttt{>} o \texttt{>=}.
+  
+\item \texttt{parse\_additive\_expression}: operandos de \texttt{parse\_multiplicative\_expression} separados
+  por \texttt{+} o \texttt{-}.
+  
+\item \texttt{parse\_multiplicative\_expression}: operandos de \texttt{parse\_unary\_expression} separados
+  por \texttt{*} o \texttt{/}.
+  
+\item \texttt{parse\_unary\_expression}: si el \emph{lookahead} es \texttt{-}, lo consume y se llama a sí misma,
+  si no, delega en \texttt{parse\_primary}.
+  
+\item \texttt{parse\_primary}: acepta un entero, \texttt{true}, \texttt{false}, un identificador o una
+  expresión entre paréntesis, con cualquier otro token reporta \texttt{se esperaba una expresion}.
+\end{itemize}
+
+Los niveles binarios siguen el patrón \emph{operando, luego} \texttt{while (parser\_match(operador))}
+\emph{otro operando}. Ese ciclo reconoce la secuencia de izquierda a derecha, que corresponde a la
+asociatividad por la izquierda publicada (\texttt{a - b - c} se agrupa como \texttt{(a - b) - c}). El
+operador unario, en cambio, se implementó con recursión hacia la derecha, en \texttt{- - x}, el primer
+\texttt{-} se aplica al resultado de reconocer \texttt{- x}, lo que corresponde a su asociatividad por la
+derecha. Los paréntesis alteran la precedencia porque \texttt{parse\_primary} vuelve a
+\texttt{parse\_expression}, reiniciando el recorrido desde el nivel más bajo dentro de ellos.\\
+
+Los ciclos binarios también verifican \texttt{!parser->panic\_mode}, para dejar de buscar operadores en
+cuanto un operando falla. Como en esta práctica no construimos AST, la agrupación no es observable en la
+salida; queda garantizada por la estructura de las funciones y se reflejará en los nodos de la siguiente
+práctica.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -173,7 +656,147 @@ Reporte expresiones.
 \section*{Diagnósticos y recuperación}
 % ================================================================
 
-Reporte diagnósticos y recuperación.
+\subsection*{Cuándo se emite un error sintáctico}
+
+Emitimos un error sintáctico cuando el lookahead no coincide con lo que exige la gramática, en cuatro
+lugares: cuando falla un \texttt{parser\_consume}, cuando \texttt{parse\_primary} no encuentra el inicio de
+una expresión; cuando \texttt{parse\_statement} encuentra un token que no inicia ninguna sentencia; y cuando
+\texttt{parse\_program} termina sin estar en \texttt{TOKEN\_EOF}.\\
+
+Todos pasan por \texttt{parser\_error}, que es nuestra implementación del \texttt{syntax\_error}
+de la especificación:
+  
+\begin{lstlisting}[style=modernc, caption={Función \texttt{parser\_error}.}]
+/* Reportamos un error sintactico sobre un token y activamos panic_mode para evitar cascadas */
+void
+parser_error(Parser *parser,
+             const Token *token,
+             const char *what)
+{
+    if (parser == NULL
+        || token == NULL
+        || parser->internal_failure)
+        return;
+
+    parser->had_error = 1;
+
+    if (parser->panic_mode)
+        return;
+    parser->panic_mode = 1;
+
+    if (token->type == TOKEN_EOF)
+        fprintf(stderr,
+                "Error sintactico [%zu:%zu]: se esperaba %s, pero se encontro TOKEN_EOF.\n",
+                token->line, token->column, what);
+    else
+        fprintf(stderr,
+                "Error sintactico [%zu:%zu]: se esperaba %s, pero se encontro '%s'.\n",
+                token->line, token->column, what, token->lexeme);
+}
+\end{lstlisting}
+
+\bigskip
+
+Al concentrar el formato en una sola función, todos los diagnósticos respetan la estructura publicada y cada
+producción solo aporta la descripción de lo esperado, un token concreto entre comillas (\texttt{';'},
+\texttt{')'}) o una categoría con artículo (\texttt{una expresion}, \texttt{un identificador}).
+
+Cuando el token encontrado es \texttt{TOKEN\_EOF}, se imprime ese nombre en lugar de un lexema vacío. Si
+\texttt{panic\_mode} ya está activo, el error se registra en \texttt{had\_error} pero no se imprime, con lo que
+evitamos reportar en cascada errores derivados del primero.
+
+\subsection*{Diferencia con un token léxico \texttt{ERROR}}
+
+Los tokens \texttt{ERROR} nunca llegan a la gramática, pues \texttt{fetch\_token} los intercepta, imprime
+\texttt{Error lexico [linea:columna]: caracter invalido '<lexema>'.}, marca \texttt{had\_error}, los destruye y
+pide el siguiente token. Así cada caracter inválido produce un único diagnóstico léxico, se consume para no
+quedar detenidos en él, y no genera además un error sintáctico. Como \texttt{had\_error} queda activo, un
+programa con errores léxicos nunca se reporta como correcto.
+
+\subsection*{Puntos de sincronización}
+
+\begin{lstlisting}[style=modernc, caption={Función \texttt{parser\_sync}.}]
+/* Descartamos tokens hasta un punto seguro para continuar el analisis tras un error */
+void
+parser_sync(Parser *parser)
+{
+    if (parser == NULL)
+        return;
+
+    parser->panic_mode = 0;
+
+    while (!parser->internal_failure
+           && parser->has_current) {
+        switch (parser->current.type) {
+        case SEMICOLON:
+            parser_advance(parser);
+            return;
+
+        case INT:
+        case BOOL:
+        case IF:
+        case WHILE:
+        case PRINT:
+        case IDENTIFIER:
+        case LBRACE:
+            return;
+
+        case RBRACE:
+        case ELSE:
+        case TOKEN_EOF:
+            return;
+
+        default:
+            parser_advance(parser);
+            break;
+        }
+    }
+}
+\end{lstlisting}
+
+\bigskip
+
+Tras un error, la función que lo detectó se retira y \texttt{parse\_statement} llama a \texttt{parser\_sync},
+que desactiva \texttt{panic\_mode} y descarta tokens hasta encontrar un punto seguro:
+
+\begin{itemize}
+\item \texttt{;} se consume, porque marca el fin de la sentencia errónea.
+\item \texttt{int}, \texttt{bool}, \texttt{if}, \texttt{while}, \texttt{print}, un identificador o
+  \texttt{\{} no se consumen, porque pueden iniciar la siguiente sentencia.
+\item \texttt{\}}, \texttt{else} y \texttt{TOKEN\_EOF} no se consumen, porque pertenecen a la estructura
+  exterio, el bloque que debe cerrarse, el \texttt{if} que puede tomar su \texttt{else}, o el programa.
+\end{itemize}
+
+Un \texttt{else} que no puede asociarse con ningún \texttt{if} llega a \texttt{parse\_statement} como
+\emph{lookahaed}, se reporta como \texttt{se esperaba una sentencia} y se consume.\\
+
+Toda llamada a \texttt{parse\_statement} consume al menos un token, cada caso del \texttt{switch} consume su
+token inicial, y el caso por defecto consume el token inesperado después de reportarlo. Como
+\texttt{parse\_statement\_list} y \texttt{parse\_block} llaman a \texttt{parse\_statement} mientras no están en
+su token de cierre, cada iteración avanza en la entrada y ningún ciclo puede quedar detenido en el mismo
+token. A esto se suman \texttt{panic\_mode}, que impide reportar más de un error por sentencia, y
+\texttt{parser\_advance}, que nunca avanza más allá de \texttt{TOKEN\_EOF}. Por ejemplo, para
+
+\begin{verbatim}
+int contador = 3
+
+while (contador > 0 {
+print(contador)
+}
+\end{verbatim}
+
+se reportan los tres errores esperados (el \texttt{;} faltante antes de \texttt{while}, el \texttt{)}
+faltante antes de \texttt{\{} y el \texttt{;} faltante antes de \texttt{\}}) y el análisis continúa hasta el
+final del archivo.
+
+\subsection*{Consumo completo del archivo}
+
+\texttt{parse\_statement\_list} solo termina cuando el \emph{lookahead} es \texttt{TOKEN\_EOF} o hubo un fallo
+interno, así que cualquier token sobrante, como un \texttt{)} o un \texttt{\}} después de un programa
+válido, llega a \texttt{parse\_statement} y se reporta como inesperado. Además, \texttt{parse\_program}
+verifica explícitamente que el lookahead final sea \texttt{TOKEN\_EOF}, solo si toda la entrada se consumió
+sin errores, \texttt{parser\_parse\_program} devuelve \texttt{PARSE\_OK} y \texttt{main.c} imprime
+\texttt{Programa sintacticamente correcto.}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -182,10 +805,296 @@ Reporte diagnósticos y recuperación.
 
 
 % ================================================================
-\section*{Resultados y pruebas}
+\section*{Resultados y pruebas}\label{sec:resultados}
 % ================================================================
 
-Reporte resultados y pruebas.
+Como indica el enunciado, y como hemos echo en las anteriores prácticas, las pruebas públicas no sustituyen las
+pruebas diseñadas por el equipo, así que además de correr las proporcionadas diseñamos casos propios enfocados
+en demostrar que el parser se recupera ante errores léxicos y sintácticos y recorre el archivo completo.\\
+
+Pero antes de describirlos, explicamos cómo adaptamos el \texttt{Makefile} para esta práctica.
+
+\subsection*{Cambios en el \texttt{Makefile}}
+
+Respecto de la Práctica 2, el \texttt{Makefile} cambió en los siguientes puntos:
+
+\begin{itemize}
+\item \texttt{SOURCES} incluye ahora \texttt{parser.c} y \texttt{grammar.c}, y los encabezados de los que
+  depende el ejecutable se obtienen con \texttt{\$(wildcard include/lexer/*.h include/parser/*.h)}, en lugar
+  de listarlos uno por uno.
+  
+\item La plantilla \texttt{run\_test\_dir} recibe ahora cuatro parámetros: directorio de entradas, directorio
+  de salidas esperadas, banderas extra para \texttt{minic} y el nombre de la suite
+  (un grupo de casos de prueba que se ejecutan juntos).
+  Las salidas reales de cada suite se guardan en su propia carpeta \texttt{build/<suite>}, para que casos con
+  el mismo nombre en suites distintas no se sobrescriban.
+  
+\item En la Práctica 2 la plantilla solo comparaba \texttt{stdout}, ahora compara además \texttt{stderr}
+  contra \texttt{<nombre>.err} y el código de salida contra \texttt{<nombre>.code}, siempre que esos archivos
+  existan. Esto era necesario porque en un programa inválido \texttt{stdout} está vacío, así que comparar solo
+  \texttt{stdout} dejaría pasar cualquier diagnóstico incorrecto. Los casos del Lexer, que solo tienen
+  \texttt{.out}, siguen funcionando igual.
+  
+\item Como en esta práctica el modo normal ejecuta el parser, las pruebas de las Prácticas 1 y 2 se corren
+  con la opción \texttt{-t}, que conserva la impresión de tokens.
+  
+\item Reorganizamos las pruebas propias en \texttt{tests/unit\_tests/lexer/}, con los casos de las Prácticas
+  1 y 2, y \texttt{tests/unit\_tests/parser/}, con los casos de esta práctica.
+\end{itemize}
+
+Los comandos implementados para las pruebas son:
+
+\begin{itemize}
+\item \texttt{make test}: corre todas las pruebas (\texttt{test-cli}, \texttt{test-unit} y \texttt{test-args}).
+\item \texttt{make test-cli}: corre las pruebas públicas de las tres prácticas.
+\item \texttt{make test-p1} y \texttt{make test-p2}: pruebas públicas de las Prácticas 1 y 2, en modo
+  \texttt{-t}.
+\item \texttt{make test-p3}: ejecuta el script público de la Práctica 3 y revisa su resumen.
+\item \texttt{make test-unit}: corre las pruebas propias del lexer y del parser.
+\item \texttt{make test-unit-lexer}: pruebas propias de las Prácticas 1 y 2, en modo \texttt{-t}.
+\item \texttt{make test-unit-parser}: pruebas propias del parser, comparando \texttt{stdout},
+  \texttt{stderr} y código de salida.
+\item \texttt{make test-args}: valida la línea de comandos (sin archivo, dos archivos, solo \texttt{-t},
+  archivo inexistente y un directorio que no puede leerse), exigiendo en cada caso código \texttt{2},
+  \texttt{stdout} vacío y un mensaje en \texttt{stderr}, además del texto exacto del mensaje de uso.
+\end{itemize}
+
+Como las pruebas públicas de la Práctica 3 no siguen el formato de las anteriores, pues traen un único
+\texttt{programa\_correcto.out} y su propio script, \texttt{run\_public\_tests.sh}, en lugar de reimplementar su
+convención, \texttt{test-p3} ejecuta directamente el script. Como su salida pasa por \texttt{tee} para
+guardarla en \texttt{build/public-p3.log}, el código de salida que ve \texttt{make} es el de \texttt{tee} y no
+el del script.\\
+
+Pruebas públicas de la Práctica 3:
+
+\begin{verbatim}
+[code/] > make test-p3
+==== public-p3 ====
+[OK] p01_empty
+[OK] p02_declarations
+[OK] p03_assignment_print
+[OK] p04_expression_precedence
+[OK] p05_if_else
+[OK] p06_dangling_else
+[OK] p07_while_blocks
+[OK] p08_complete_program
+[OK] p09_missing_semicolon
+[OK] p10_missing_parenthesis
+[OK] p11_missing_brace
+[OK] p12_incomplete_expression
+[OK] p13_operator_without_operand
+[OK] p14_unexpected_token
+[OK] p17_trailing_content
+[OK] p15_multiple_errors
+[OK] p16_lexical_error
+
+Aprobadas: 17
+Fallidas: 0
+\end{verbatim}
+
+\subsection*{Pruebas propias del parser}
+
+Del mismo modo aplicamos con un \texttt{sh} para probar estas pruebas propias del parser.
+Cada caso consta de un \texttt{.mc} en \texttt{tests/unit\_tests/parser/inputs/} y de tres archivos en
+\texttt{tests/unit\_tests/parser/expected/}, el \texttt{.out} vacío, porque un programa inválido no debe
+escribir nada en \texttt{stdout}; el \texttt{.code}, con el código de salida \texttt{1}; y el \texttt{.err},
+con los diagnósticos exactos esperados, incluyendo línea y columna. En todos los casos colocamos a propósito
+un error en la última línea del archivo, si ese diagnóstico aparece, queda demostrado que el parser recorrió
+el archivo completo a pesar de los errores anteriores.\\
+
+\textbf{\texttt{ut\_operadores\_sin\_operando}}: operadores binarios a los que les falta un operando, y un
+\texttt{-} unario sin operando. Cada línea inválida produce exactamente un error, y la línea válida intermedia
+(línea 8) no produce ninguno.
+
+\begin{verbatim}
+int x = 1 + ;
+x = * 2;
+x = 1 + * 2;
+x = (3 - );
+print(4 < );
+bool b = true && || false;
+x = - ;
+x = 10 / 2 * 3;
+print(x ==)
+\end{verbatim}
+
+\begin{verbatim}
+Error sintactico [1:12]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [2:4]: se esperaba una expresion, pero se encontro '*'.
+Error sintactico [3:8]: se esperaba una expresion, pero se encontro '*'.
+Error sintactico [4:9]: se esperaba una expresion, pero se encontro ')'.
+Error sintactico [5:10]: se esperaba una expresion, pero se encontro ')'.
+Error sintactico [6:17]: se esperaba una expresion, pero se encontro '||'.
+Error sintactico [7:6]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [9:10]: se esperaba una expresion, pero se encontro ')'.
+\end{verbatim}
+
+En la línea 9 también falta el \texttt{;}, pero no se reporta, porque \texttt{panic\_mode} ya está activo por
+el error anterior de la misma sentencia; así evitamos diagnósticos en cascada.
+
+\textbf{\texttt{ut\_parentesis\_y\_llaves}}: paréntesis de más y de menos en expresiones, en un
+\texttt{if} y en un \texttt{while}, y un bloque sin cerrar al final. Incluye también varios niveles de
+anidamiento válidos (línea 1 y bloques dentro de bloques) que no producen errores.
+
+\begin{verbatim}
+print((((1 + 2))));
+x = ((1 + 2) * 3;
+y = (1 + 2)) * 3;
+if ((x > 0) { print(x); }
+while (x > 0)) x = x - 1;
+{
+  { int z = (x * (y - 1)); }
+  print(z);
+\end{verbatim}
+
+\begin{verbatim}
+Error sintactico [2:16]: se esperaba ')', pero se encontro ';'.
+Error sintactico [3:11]: se esperaba ';', pero se encontro ')'.
+Error sintactico [4:12]: se esperaba ')', pero se encontro '{'.
+Error sintactico [5:13]: se esperaba una sentencia, pero se encontro ')'.
+Error sintactico [9:0]: se esperaba '}', pero se encontro TOKEN_EOF.
+\end{verbatim}
+
+En la línea 4 la sincronización se detiene en \texttt{\{} sin consumirlo, así que el bloque siguiente se
+analiza normalmente; en la línea 5 el \texttt{)} sobrante se reporta como token inesperado y la asignación que
+le sigue se reconoce sin errores.
+
+\textbf{\texttt{ut\_lexicos\_y\_sintacticos}}: errores léxicos y sintácticos intercalados, incluso en la misma
+línea. Cada caracter inválido produce un único diagnóstico léxico, y solo hay error sintáctico cuando, sin ese
+caracter, la estructura queda rota: en la línea 1 el programa es válido sin \texttt{@} y \texttt{\$}, mientras
+que en la línea 2, sin \texttt{@}, quedan \texttt{x 1} seguidos.
+
+\begin{verbatim}
+@ int x = 10 $;
+print(x @ 1);
+if (x # > 0) print(x;
+while (x > 0) { x = x - 1 & ; }
+bool b = true ~
+\end{verbatim}
+
+\begin{verbatim}
+Error lexico [1:0]: caracter invalido '@'.
+Error lexico [1:13]: caracter invalido '$'.
+Error lexico [2:8]: caracter invalido '@'.
+Error sintactico [2:10]: se esperaba ')', pero se encontro '1'.
+Error lexico [3:6]: caracter invalido '#'.
+Error sintactico [3:20]: se esperaba ')', pero se encontro ';'.
+Error lexico [4:26]: caracter invalido '&'.
+Error lexico [5:14]: caracter invalido '~'.
+Error sintactico [6:0]: se esperaba ';', pero se encontro TOKEN_EOF.
+\end{verbatim}
+
+\textbf{\texttt{ut\_recuperacion\_estructuras}}: errores dentro de un \texttt{if}/\texttt{else} anidado en
+un \texttt{while}, un \texttt{else} huérfano y un \texttt{else} sin sentencia al final del archivo. Después de
+cada error las llaves se siguen emparejando correctamente, por lo que no aparece ningún \texttt{\}} falso, y
+la línea 9 se reconoce dentro del ciclo sin errores.
+
+\begin{verbatim}
+int contador = 3;
+while (contador > 0) {
+  if (contador == 2) {
+    x = ;
+    print(x)
+  } else {
+    int = 3;
+  }
+  contador = contador - 1;
+}
+else print(0);
+if (contador) print(1); else
+\end{verbatim}
+
+\begin{verbatim}
+Error sintactico [4:8]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [6:2]: se esperaba ';', pero se encontro '}'.
+Error sintactico [7:8]: se esperaba un identificador, pero se encontro '='.
+Error sintactico [11:0]: se esperaba una sentencia, pero se encontro 'else'.
+Error sintactico [13:0]: se esperaba una sentencia, pero se encontro TOKEN_EOF.
+\end{verbatim}
+
+Los cuatro casos pasan:
+
+\begin{verbatim}
+[code/] > make test-unit-parser
+==== unit-parser ====
+PASS: ut_lexicos_y_sintacticos
+PASS: ut_operadores_sin_operando
+PASS: ut_parentesis_y_llaves
+PASS: ut_recuperacion_estructuras
+----
+Total: 4  Pass: 4  Fail: 0
+\end{verbatim}
+
+\subsection*{Regresión del lexer}
+
+Para comprobar que la refactorización del lexer conservó su comportamiento, corrimos de nuevo las pruebas
+públicas de las Prácticas 1 y 2 y nuestros casos propios del lexer, todos en modo \texttt{-t}. Como la
+interfaz incremental entrega exactamente la misma secuencia de tokens que producía \texttt{lexer\_scan}, todas
+siguen pasando:
+
+\begin{verbatim}
+[code/] > make test-p2
+==== public-p2 ====
+PASS: p01_identifiers
+PASS: p02_reserved_words
+PASS: p03_case_sensitive
+PASS: p04_booleans
+PASS: p05_compound_operators
+PASS: p06_incomplete_operators
+PASS: p07_comments
+PASS: p08_comment_at_eof
+PASS: p09_slash_and_comments
+PASS: p10_longest_match
+PASS: p11_error_recovery
+PASS: p12_complete_lexer
+PASS: p13_crlf
+----
+Total: 13  Pass: 13  Fail: 0
+\end{verbatim}
+
+\begin{verbatim}
+[code/] > make test-p1 test-unit-lexer
+==== public-p1 ====
+PASS: p10_mixed_basic
+PASS: p1_empty
+PASS: p2_whitespace
+PASS: p3_single_symbols
+PASS: p4_integer
+PASS: p5_integer_expression
+PASS: p6_multiple_lines
+PASS: p7_tabs_spaces
+PASS: p8_error_character
+PASS: p9_negative_number
+----
+Total: 10  Pass: 10  Fail: 0
+==== unit-lexer ====
+PASS: ut_comment_literal_newline
+PASS: ut_compound_ops_and_comments
+PASS: ut_dense_no_spaces
+PASS: ut_error_recovery_mixed
+PASS: ut_slashes
+----
+Total: 5  Pass: 5  Fail: 0
+\end{verbatim}
+
+\subsection*{Validación de la línea de comandos}
+
+Por último, \texttt{make test-args} comprueba que los errores de uso y de apertura se distingan de los
+errores del programa fuente: en los seis casos el programa termina con código \texttt{2}, sin escribir en
+\texttt{stdout} y con un mensaje en \texttt{stderr}.
+
+\begin{verbatim}
+[code/] > make test-args
+==== args ====
+PASS: sin archivo
+PASS: mensaje de uso
+PASS: dos archivos
+PASS: solo -t
+PASS: archivo inexistente
+PASS: directorio (no legible)
+----
+Total: 6  Pass: 6  Fail: 0
+\end{verbatim}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -194,10 +1103,40 @@ Reporte resultados y pruebas.
 
 
 % ================================================================
-\section*{Problemas encontrados}
+\section*{Problemas encontrados}\label{sec:problemas}
 % ================================================================
 
-Reporte problemas encontrados.
+\subsection*{Separación entre \texttt{parser.h} y \texttt{parser\_internal.h}}
+
+Al dividir el parser en \texttt{parser.c} (flujo de tokens) y \texttt{grammar.c} (gramática), nos encontramos
+con que las operaciones auxiliares (\texttt{parser\_advance}, \texttt{parser\_check}, \texttt{parser\_match},
+\texttt{parser\_consume}, \texttt{parser\_sync}, entre otras) estaban declaradas como \texttt{static} en
+\texttt{parser.c}, como sugería la base inicial, así que \texttt{grammar.c} no podía llamarlas.
+
+La primera solución que consideramos fue declararlas en \texttt{parser.h}, pero ese encabezado lo incluye
+\texttt{main.c}, lo que le habría dado acceso a operaciones que no le corresponden, como avanzar tokens o
+sincronizar, realmente no habría problema en hacerlo, sin embargo tratamos de que todo esté bien definido.
+También evaluamos juntar todo en un solo \texttt{parser.c}, lo que elimina el problema, pero a
+cambio de un archivo de más de quinientas líneas que mezcla dos niveles de abstracción.\\
+
+Optamos por un tercer encabezado, \texttt{parser\_internal.h}, que declara las operaciones auxiliares y que
+solo incluyen \texttt{parser.c} y \texttt{grammar.c}. Así \texttt{parser.h} quedó con la interfaz mínima que
+necesita \texttt{main.c} (\texttt{parser\_init}, \texttt{parser\_parse\_program} y \texttt{parser\_destroy}),
+y cada archivo fuente conserva una sola responsabilidad.
+
+\subsection*{Desbordamiento de pila por anidamiento}
+
+Al probar entradas extremas encontramos que un archivo con alrededor de cien mil paréntesis anidados, por
+ejemplo \texttt{x = ((((...1...))));}, termina con \texttt{Segmentation fault}. La causa es propia del descenso
+recursivo, cada nivel de paréntesis recorre toda la cadena \texttt{parse\_expression}
+$\rightarrow$ \texttt{parse\_or\_expression} $\rightarrow \dots \rightarrow$ \texttt{parse\_primary}, y vuelve
+a empezar dentro de ellos, así que cada nivel agrega varias llamadas a la pila hasta desbordarla. Lo mismo
+ocurre con bloques, \texttt{if} o \texttt{-} unarios encadenados en cantidades similares.\\
+
+Con niveles de anidamiento realistas (decenas o incluso cientos) el parser funciona correctamente, como
+muestra \texttt{ut\_parentesis\_y\_llaves}. Una solución sería agregar un contador de profundidad al parser y
+detener el análisis de forma controlada al superar un límite, decidimos no incluirla en esta entrega por
+tratarse de un caso artificial muy extremo, pero la dejamos registrada como limitación conocida.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -209,7 +1148,26 @@ Reporte problemas encontrados.
 \section*{Conclusiones}
 % ================================================================
 
-Reporte conclusiones.
+Esta práctica nos mostró como es la implementación de una gramática en C, donde la parte más directa de un
+parser descendente recursivo es la traducción de la gramática, cada producción se convierte en una función,
+cada repetición en un ciclo, cada parte opcional en un \texttt{match} y cada terminal obligatorio en un
+\texttt{consume}. Incluso la precedencia y la asociatividad de los operadores, que parecían requerir lógica
+especial, quedaron resueltas solo con el orden en que las funciones se llaman entre sí.\\
+
+La recuperación ante errores nos obligó a pensar mejor en el diseño e implementación del parser, no bastaba con
+un \texttt{print} en cada error encontrado, había que garantizar que cada ruta consumiera algún token o
+devolviera el control a quien pudiera procesarlo, porque de lo contrario el parser se quedaba detenido o
+repetía el mismo error indefinidamente. La interfaz incremental, por su parte, nos obligó a definir
+con precisión quién es dueño de cada token y cuándo se libera, algo que en la Práctica 2 no hacía falta porque
+cada token se imprimía y se destruía en el mismo lugar.\\
+
+Supongemos y en cierto modo afirmamos que Esta organización debería facilitar la construcción del AST en la
+siguiente práctica pues cada función de \texttt{grammar.c} ya corresponde a un no terminal, así que bastará con
+que en lugar de \texttt{void} devuelva el nodo que reconocem, como \texttt{parse\_declaration} un nodo de
+declaración, \texttt{parse\_primary} una hoja con un literal o un identificador, y así sucesivamente. Como el
+manejo de tokens vive en \texttt{parser.c} y gracias a implementar la práctica de este modo, todos los futuros
+cambios e implementaciones que deberemos hacer para la futura práctica se concentrarán en \texttt{grammar.c}.
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -221,7 +1179,16 @@ Reporte conclusiones.
 \section*{División del trabajo}
 % ================================================================
 
-Reporte división del trabajo.
+Para esta práctica, debido a circunstacias sucitadas por ambos integrantes, se complicó la participación
+activa de ambos integrantes; por ello la entrega fue realizada demasiado tarde.\\
+
+Sin embargo para compensar esta situación se entregará la práctica 4 mucho antes de la fecha de entrega
+establecida, y será la compañera Fernanda quien aporte más a su realización para compensar su escacez en la
+práctica 3.\\
+
+La compañera \textit{María Fernanda} realizó todas las adaptaciones y mejoras correspondientes al Lexer,
+además de aportar en discusiones sobre la implementación de código y redacción del reporte. El compañero
+\textit{Manuel Ianluck} por su parte, realizó el código correspondiente al Parser y a la gramática.\\
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -233,8 +1200,26 @@ Reporte división del trabajo.
 \section*{Uso de herramientas de Inteligencia Artificial}
 % ================================================================
 
-Reporte uso de herramientas IA.
+Para la realización de esta práctica no se llevó a cabo ninguna utilización de inteligencia artifical de ningún
+tipo, más que para el texto del README.md. Se le pidió lo siguiente:
 
+\begin{quote}
+  En base a este reporte \texttt{<practica.tex>}, este README realizado con anterioridad, genera el texto
+  a agregar en los siguientes encabezados:
+
+  \begin{verbatim}
+    ### Propiedad de tokens y lexemas, ## Funcionalidades implementadas,
+    ## Pruebas, ## Problemas conocidos, ## Notas de ejecución
+  \end{verbatim}
+  
+  para completar el README de mi Práctica 3. El texto debe ser muy breve pues todo lo implementado ya está
+  detallado en el reporte, estas secciones del README funcionan como un resumen muy breve de lo implementado
+  el código.
+\end{quote}
+
+Se le pasó el texto del archivo LaTeX del reporte aquí presente y el texto del README echo en la Práctica 2,
+para que simplemente resuma lo necesario de nuestro reporte ya echo. Esto por la falta de tiempo que el equipo
+contó para refinar este archivo.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bigskip
@@ -250,13 +1235,12 @@ Reporte uso de herramientas IA.
   ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
 
 \bibitem{ref3}
-  ppreference.com. (n.d.). Strings library, strchr. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/strchr}}}
+  cppreference.com. (n.d.). File input/output, ferror. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/io/ferror}}}
 
 \bibitem{ref4}
-  ppreference.com. (n.d.). Strings library, isalpha. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isalpha}}}
-
-\bibitem{ref4}
-  ppreference.com. (n.d.). Strings library, isalnum. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/string/byte/isalnum}}}
+  Free Software Foundation. (n.d.). GNU make. Disponible en
+  \textcolor{links}{\uline{\url{https://www.gnu.org/software/make/manual/make.html}}}
 \end{thebibliography}
 
 \end{document}

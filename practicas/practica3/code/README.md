@@ -1,11 +1,11 @@
-# Práctica 2: Analizador léxico completo de MiniC
+# Práctica 3: Analizador sintáctico descendente recursivo de MiniC
 
 ## Información general
 
 | Campo        | Información  |
 |--------------|--------------|
 | Asignatura   | Compiladores |
-| No. práctica | 2            |
+| No. práctica | 3            |
 | Equipo       | Equipo 14    |
 
 
@@ -20,58 +20,58 @@
 ## Estructura del proyecto
 
 ```
-Practica02_Equipo14/
+Practica03_Equipo14/
 ├── CHANGELOG.md
 ├── include
-│   └── lexer
-│       ├── buffer_manage.h
-│       ├── keywords.h
-│       ├── lexer.h
-│       └── token.h
+│   ├── lexer
+│   │   ├── buffer_manage.h
+│   │   ├── keywords.h
+│   │   ├── lexer.h
+│   │   └── token.h
+│   └── parser
+│       ├── grammar.h
+│       ├── parser.h
+│       └── parser_internal.h
 ├── Makefile
+├── minic
 ├── README.md
-├── reporte.pdf
 ├── src
 │   ├── lexer
 │   │   ├── buffer_manage.c
 │   │   ├── keywords.c
 │   │   ├── lexer.c
 │   │   └── token.c
-│   └── main.c
+│   ├── main.c
+│   └── parser
+│       ├── grammar.c
+│       ├── parser.c
+│       └── parser_internal.c
 └── tests
     ├── public
     │   ├── p1
-    │   │   ├── expected
-    │   │   └── inputs
     │   ├── p2
-    │   │   ├── expected
-    │   │   └── inputs
-    │   ├── README.md
-    │   └── run_public_tests.sh
-    ├── README.md
+    │   └── p3
     └── unit_tests
-        ├── expected
-        │   ├── ut_comment_literal_newline.out
-        │   ├── ut_compound_ops_and_comments.out
-        │   ├── ut_dense_no_spaces.out
-        │   ├── ut_error_recovery_mixed.out
-        │   ├── ut_slashes.mc
-        │   └── ut_slashes.out
-        └── inputs
-            ├── ut_comment_literal_newline.mc
-            ├── ut_compound_ops_and_comments.mc
-            ├── ut_dense_no_spaces.mc
-            ├── ut_error_recovery_mixed.mc
-            └── ut_slashes.mc
+        ├── lexer
+        └── parser
 ```
 
 
 ### Módulos implementados
-
-| Archivo o módulo | Responsabilidad                 |
-|------------------|---------------------------------|
-| `Makefile`       | Punto de entrada e integración. |
-| `src/lexer.c`    | Punto de entrada e integración. |
+    
+| Archivo o módulo                   | Responsabilidad                                                                                          |
+|------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `Makefile`                         | Compilación y ejecución de las pruebas públicas y propias.                                               |
+| `src/main.c`                       | Valida argumentos, abre el archivo, coordina lexer y parser, informa el resultado y el código de salida. |
+| `src/lexer/token.c`                | Construcción, impresión y liberación de tokens.                                                          |
+| `src/lexer/keywords.c`             | Tabla de palabras reservadas y `lookup_keyword`.                                                         |
+| `src/lexer/buffer_manage.c`        | Buffer dinámico para lexemas de longitud arbitraria.                                                     |
+| `src/lexer/lexer.c`                | Interfaz incremental del lexer: entrega un token por llamada.                                            |
+| `src/parser/parser.c`              | Flujo de tokens: lookahead, avance, consumo, diagnósticos y sincronización.                              |
+| `src/parser/grammar.c`             | Una función por no terminal de la gramática de MiniC.                                                    |
+| `include/parser/parser.h`          | Interfaz pública del parser (la única que usa `main.c`).                                                 |
+| `include/parser/parser_internal.h` | Operaciones auxiliares compartidas entre `parser.c` y `grammar.c`.                                       |
+| `include/parser/grammar.h`         | Punto de entrada de la gramática (`parse_program`).                                                      |
 
 
 ## Requisitos
@@ -103,43 +103,98 @@ make test
 ./minic <programa>.mc
 ```
 
+Para imprimir la secuencia de tokens (comportamiento de las Prácticas 1 y 2, usado solo en sus pruebas de
+regresión):
+
+```
+./minic -t <programa>.mc
+```
+
+### Salida y códigos de salida
+
+| Situación                                 | `stdout`                             | `stderr`         | Código |
+|-------------------------------------------|--------------------------------------|------------------|--------|
+| Programa sin errores                      | `Programa sintacticamente correcto.` | vacío            | `0`    |
+| Errores léxicos o sintácticos             | vacío                                | diagnósticos     | `1`    |
+| Error de uso, apertura, lectura o memoria | vacío                                | mensaje de error | `2`    |
+
+Formato de los diagnósticos:
+
+```
+Error sintactico [linea:columna]: se esperaba <elemento>, pero se encontro '<lexema>'.
+Error lexico [linea:columna]: caracter invalido '<lexema>'.
+```
+
+Cuando el token encontrado es el fin del archivo se imprime `TOKEN_EOF` en lugar de un lexema vacío.
+
+### Propiedad de tokens y lexemas
+
+- Con `LEXER_STATUS_OK`, `lexer_next_token` entrega un token cuyo lexema fue reservado por `token_init`;
+  quien lo recibe adquiere su propiedad. Con cualquier otro estado, el token no es válido y no se destruye.
+- El parser es dueño de `current` y `previous` mientras `has_current` y `has_previous` estén activos. Al
+  avanzar destruye el `previous` anterior y mueve `current` a `previous`, sin copiar el lexema.
+- Los tokens `ERROR` se reportan y se destruyen en cuanto se reciben, sin llegar a la gramática.
+- `parser_destroy` libera ambos tokens exactamente una vez, aunque haya habido errores.
+- El lexer no reserva memoria propia; ni el lexer ni el parser son dueños del archivo, que cierra `main.c`.
+
 ## Funcionalidades implementadas
 
-- Identificadores (`[a-zA-Z_][a-zA-Z0-9_]*`), distinguidos de palabras reservadas (`int`, `bool`, `if`,
-  `else`, `while`, `print`) y de literales booleanos (`true`, `false`).
-- Operadores compuestos `==`, `!=`, `<=`, `>=`, `&&`, `||`, con su versión simple correspondiente cuando
-  aplica (`=`, `<`, `>`).
-- Comentarios de una línea (`//`), ignorados hasta el fin de línea o el fin del archivo.
-- Lexemas de longitud arbitraria (enteros e identificadores), gracias a un buffer dinámico.
-- Recuperación tras un token `ERROR`: el análisis continúa sin detenerse.
+- Interfaz incremental del lexer (`lexer_init`, `lexer_next_token`, `lexer_destroy`) que no imprime tokens
+  como efecto secundario y distingue un token `ERROR` de un fallo interno (`LexerStatus`).
+- Parser descendente recursivo con un token de anticipación, que reconoce:
+  - declaraciones (`int x;`, `bool b = true;`), asignaciones e impresión (`print(expr);`);
+  - condicionales `if` con `else` opcional, asociado al `if` más cercano;
+  - ciclos `while` y bloques `{ ... }`;
+  - expresiones con la precedencia y asociatividad publicadas (`||`, `&&`, `==` `!=`, `<` `<=` `>` `>=`,
+    `+` `-`, `*` `/`, `-` unario y paréntesis).
+- Diagnósticos sintácticos con línea, columna, elemento esperado y lexema encontrado, en `stderr`.
+- Un único diagnóstico léxico por cada token `ERROR`, sin error sintáctico adicional.
+- Recuperación por sentencias con los tokens de sincronización publicados, sin ciclos infinitos ni errores
+  repetidos, y analizando el archivo hasta el final.
+- Verificación de que toda la entrada se consume hasta `TOKEN_EOF`.
+- Se conservan todas las funcionalidades léxicas de las Prácticas 1 y 2.
 
 Más detalles sobre diseño e implementación en el reporte de la práctica.
 
 ## Pruebas
 
-- `tests/public/p1/`: pruebas públicas de la Práctica 1 (`make test-p1`).
-- `tests/public/p2/`: pruebas públicas de la Práctica 2 (`make test-p2`).
-- `tests/unit_tests/`: pruebas propias del equipo, enfocadas en casos límite y de error (`make test-unit`).
-- `make test-cli` corre `test-p1` y `test-p2` juntos; `make test` corre `test-cli` y `test-unit`.
+- `tests/public/p1/` y `tests/public/p2/`: pruebas públicas de las Prácticas 1 y 2, ejecutadas con `-t`
+  (`make test-p1`, `make test-p2`).
+- `tests/public/p3/`: pruebas públicas de la Práctica 3, ejecutadas con su propio script
+  `run_public_tests.sh` (`make test-p3`).
+- `tests/unit_tests/lexer/`: pruebas propias del lexer (`make test-unit-lexer`).
+- `tests/unit_tests/parser/`: pruebas propias del parser, enfocadas en la recuperación ante errores
+  léxicos y sintácticos (`make test-unit-parser`). Cada caso compara `stdout` (`.out`), `stderr` (`.err`)
+  y código de salida (`.code`).
+- `make test-args`: validación de la línea de comandos (sin archivo, dos archivos, archivo inexistente, etc.).
+- `make test-cli` corre `test-p1`, `test-p2` y `test-p3`; `make test-unit` corre `test-unit-lexer` y
+  `test-unit-parser`; `make test` corre `test-cli`, `test-unit` y `test-args`.
 
 Más detalles de cada caso en la sección "Resultados y pruebas" del reporte.
 
 ## Problemas conocidos
 
-- No se valida que un entero reconocido quepa en el rango de un tipo numérico concreto (por ejemplo,
-  overflow de `int`); se considera responsabilidad de una etapa posterior del compilador.
-- No hay límite de longitud para identificadores o enteros más allá de la memoria disponible del sistema.
+- Un anidamiento extremo (del orden de cien mil paréntesis, bloques o `if` anidados) desborda la pila del
+  descenso recursivo y termina con `Segmentation fault`. Con niveles de anidamiento realistas el parser
+  funciona correctamente.
+- Algunos errores pueden producir un segundo diagnóstico derivado. Por ejemplo, en `if x > 0 {` se reporta
+  el `(` faltante y, al sincronizar en `x`, también un `=` esperado. El enunciado permite que el número de
+  diagnósticos dependa de la recuperación.
+- Un caracter no ASCII (por ejemplo `ñ` en UTF-8) produce un token `ERROR` por cada byte.
+- No se valida que un entero reconocido quepa en el rango de un tipo numérico concreto, ni hay límite de
+  longitud para identificadores o enteros más allá de la memoria disponible.
 
 ## Notas de ejecución
 
-- `./minic <programa>.mc` imprime la secuencia de tokens en `stdout`; los diagnósticos internos (errores
-  de lectura o de memoria) se imprimen por separado en `stderr`.
-- Como los archivos de prueba están en rutas como `tests/public/p2/inputs/` o `tests/unit_tests/inputs/`,
-  hay que indicar la ruta completa al ejecutar manualmente, por ejemplo:
+- En modo normal, `stdout` solo contiene el resultado general del análisis; todos los diagnósticos van a
+  `stderr`.
+- Como los archivos de prueba están en rutas como `tests/public/p3/inputs/` o
+  `tests/unit_tests/parser/inputs/`, hay que indicar la ruta completa al ejecutar manualmente, por ejemplo:
 ```
-./minic tests/public/p2/inputs/p01_identifiers.mc
+./minic tests/public/p3/inputs/p08_complete_program.mc
 ```
 
-- Las salidas de prueba (`.actual`) se generan en `build/`, tanto para `test-p1`, `test-p2` como
-  `test-unit`.
+- Las salidas de las pruebas se guardan en `build/<suite>/` (`public-p1`, `public-p2`, `unit-lexer`,
+  `unit-parser`, `args`) como `<caso>.out`, `<caso>.err` y `<caso>.code`; la salida del script de P3 se
+  guarda en `build/public-p3.log`.
 - Requiere `gcc` con soporte para C11 (`-std=c11`); se compila con `-Wall -Wextra -Wpedantic`.

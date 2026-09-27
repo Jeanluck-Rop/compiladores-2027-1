@@ -1,0 +1,5 @@
+Error sintactico [4:8]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [6:2]: se esperaba ';', pero se encontro '}'.
+Error sintactico [7:8]: se esperaba un identificador, pero se encontro '='.
+Error sintactico [11:0]: se esperaba una sentencia, pero se encontro 'else'.
+Error sintactico [13:0]: se esperaba una sentencia, pero se encontro TOKEN_EOF.

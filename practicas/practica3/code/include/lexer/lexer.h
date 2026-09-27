@@ -13,7 +13,17 @@ typedef struct {
     int current;
 } Lexer;
 
-/* Funcion que comienza el escaneo de un archivo para ser procesado por el lexer */
-int lexer_scan(FILE *file);
+/* Resultado de pedir un token */
+typedef enum {
+    LEXER_STATUS_OK,
+    LEXER_STATUS_IO_ERROR,
+    LEXER_STATUS_MEMORY_ERROR
+} LexerStatus;
+
+
+int lexer_init(Lexer *lexer, FILE *source);
+LexerStatus lexer_next_token(Lexer *lexer, Token *out);
+void lexer_destroy(Lexer *lexer);
+int lexer_print_tokens(FILE *source);
 
 #endif

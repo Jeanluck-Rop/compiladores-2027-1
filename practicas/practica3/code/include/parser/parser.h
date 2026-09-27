@@ -1,26 +1,29 @@
 #ifndef MINIC_PARSER_H
 #define MINIC_PARSER_H
 
-/* Adapten esta inclusión a la interfaz incremental de su proyecto. */
-#include "lexer/lexer_incremental.h"
+#include "lexer/lexer.h"
+
+/* Resultado del analisis completo de un programa */
+typedef enum {
+    PARSE_OK,              /* programa sintacticamente correcto */
+    PARSE_INVALID,         /* hubo errores lexicos o sintacticos */
+    PARSE_INTERNAL_FAILURE /* fallo de E/S o de memoria al pedir tokens */
+} ParseResult;
 
 typedef struct {
     Lexer *lexer;
-    Token current;
+    Token current;        /* token de anticipacion */
+    Token previous;       /* ultimo token consumido */
     int has_current;
-    int had_error;
-    int panic_mode;
-    int internal_failure;
+    int has_previous;
+    int had_error;        /* hubo algun error lexico o sintactico */
+    int panic_mode;       /* suprime errores en cascada hasta sincronizar */
+    int internal_failure; /* el lexer fallo; el analisis se detiene */
 } Parser;
 
+
 int parser_init(Parser *parser, Lexer *lexer);
-int parser_advance(Parser *parser);
-int parser_check(const Parser *parser, TokenType type);
-int parser_match(Parser *parser, TokenType type);
-const Token *parser_current(const Parser *parser);
+ParseResult parser_parse_program(Parser *parser);
 void parser_destroy(Parser *parser);
 
-/* TODO: agreguen aquí la operación pública que inicia el análisis completo. */
-
 #endif
-

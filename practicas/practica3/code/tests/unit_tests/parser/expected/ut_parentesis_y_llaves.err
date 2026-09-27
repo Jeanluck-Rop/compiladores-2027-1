@@ -1,0 +1,5 @@
+Error sintactico [2:16]: se esperaba ')', pero se encontro ';'.
+Error sintactico [3:11]: se esperaba ';', pero se encontro ')'.
+Error sintactico [4:12]: se esperaba ')', pero se encontro '{'.
+Error sintactico [5:13]: se esperaba una sentencia, pero se encontro ')'.
+Error sintactico [9:0]: se esperaba '}', pero se encontro TOKEN_EOF.
