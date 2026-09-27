@@ -1,0 +1,9 @@
+Error lexico [1:0]: caracter invalido '@'.
+Error lexico [1:13]: caracter invalido '$'.
+Error lexico [2:8]: caracter invalido '@'.
+Error sintactico [2:10]: se esperaba ')', pero se encontro '1'.
+Error lexico [3:6]: caracter invalido '#'.
+Error sintactico [3:20]: se esperaba ')', pero se encontro ';'.
+Error lexico [4:26]: caracter invalido '&'.
+Error lexico [5:14]: caracter invalido '~'.
+Error sintactico [6:0]: se esperaba ';', pero se encontro TOKEN_EOF.
