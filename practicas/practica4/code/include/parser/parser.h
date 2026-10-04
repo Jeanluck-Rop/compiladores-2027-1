@@ -2,6 +2,7 @@
 #define MINIC_PARSER_H
 
 #include "lexer/lexer.h"
+#include "ast/ast.h"
 
 /* Resultado del analisis completo de un programa */
 typedef enum {
@@ -23,7 +24,7 @@ typedef struct {
 
 
 int parser_init(Parser *parser, Lexer *lexer);
-ParseResult parser_parse_program(Parser *parser);
+ParseResult parser_parse_program(Parser *parser, ASTNode **out_root);
 void parser_destroy(Parser *parser);
 
 #endif

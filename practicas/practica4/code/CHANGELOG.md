@@ -1,6 +1,56 @@
 # Changelog
 
-## [Práctica 4] fecha
+## [Práctica 4] 03-10-2026
+
+### Agregados
+- Módulo `ast`: `ast.h` y `ast.c`, con los tipos de nodo, los constructores, la impresión del árbol y su
+  liberación.
+- Enumeraciones `ASTNodeType`, `ASTDeclaredType`, `BinaryOperator` y `UnaryOperator`, y estructura
+  `ASTNode` con una unión para los datos de cada tipo de nodo.
+- Lista dinámica `ASTNodeList` (`ast_node_list_init`, `ast_node_list_append`, `ast_node_list_destroy`),
+  que duplica su capacidad al llenarse.
+- Constructores `ast_create_*` para programa, bloque, declaración, asignación, `print`, `if`, `while`,
+  expresiones binarias y unarias, identificadores y literales enteros y booleanos.
+- Información de línea y columna en cada nodo, con las posiciones fijadas por el enunciado.
+- `ast_print`, que imprime el árbol con el formato canónico (dos espacios por nivel, un elemento por línea).
+- `ast_destroy`, que libera recursivamente cadenas, hijos, listas y el nodo, y acepta `NULL`.
+- `parse_binary_level` en `grammar.c`: función genérica para los niveles de expresiones binarias,
+  asociativos por la izquierda, que usa una tabla de pares token/operador.
+- `fail_memory` y `copy_string` en `grammar.c`: el primero detiene el análisis si falla un constructor y el
+  segundo copia los lexemas que deben sobrevivir al token.
+- Contrato de propiedad de memoria: los constructores adquieren los hijos solo si tienen éxito y, si
+  devuelven `NULL`, los hijos siguen siendo del llamador.
+- Impresión de `AST:`, el árbol y `Programa sintacticamente correcto.` en `main.c`, solo cuando el análisis
+  es correcto.
+- [CONFIRMAR: pruebas propias del AST en `tests/` y cambios en el Makefile, por ejemplo el target de pruebas
+  de la Práctica 4 y la inclusión de `src/ast/` en `SOURCES`.]
+
+### Cambios
+- Todas las funciones de `grammar.c` pasaron de `void` a `ASTNode *`: devuelven el nodo que reconocen o
+  `NULL` ante un error.
+- `parse_program` devuelve la raíz del AST, o `NULL` si hubo cualquier error léxico, sintáctico o interno.
+- `parser_parse_program` recibe un parámetro de salida (`ASTNode **out_root`): con `PARSE_OK` entrega la
+  raíz y con cualquier otro resultado entrega `NULL`, sin dejar árboles parciales.
+- `parser.h` incluye `ast/ast.h`.
+- Los seis niveles de expresiones binarias (`||`, `&&`, igualdad, comparación, suma/resta y
+  multiplicación/división) se implementan con `parse_binary_level` en lugar de seis ciclos independientes.
+- `parse_declaration` y `parse_assignment` copian el nombre del identificador antes de avanzar, porque
+  `parser_advance` destruye el token anterior.
+- `parse_block` y `parse_program` siguen analizando tras un error para recuperarse, pero descartan la lista
+  y devuelven `NULL` si algo falló.
+- `parse_primary` devuelve directamente la expresión interna de los paréntesis, sin crear un nodo.
+- `main.c`: el mensaje de éxito se imprime después del árbol; se libera el AST antes de destruir el parser
+  y el lexer.
+
+### Mejoras
+- Ante un error no se entrega ningún árbol parcial: los nodos incompletos se liberan en la función que los
+  posee y `stdout` queda vacío.
+
+### Eliminados
+- `parse_statement_list`: su ciclo se integró en `parse_program`, que ahora acumula las sentencias en una
+  lista.
+- El `printf` del mensaje de éxito dentro del `switch` de `main.c`, que lo duplicaba al agregar la
+  impresión del AST.
 
 
 ## [Práctica 3] 26-09-2026

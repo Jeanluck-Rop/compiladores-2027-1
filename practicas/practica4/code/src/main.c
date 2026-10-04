@@ -1,5 +1,6 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "ast/ast.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +17,8 @@ parser(FILE *file)
     Lexer lexer;
     Parser parser;
     ParseResult result;
-
+    ASTNode *root = NULL;
+    
     if (!lexer_init(&lexer, file)) {
         fprintf(stderr, "Error: no se pudo inicializar el lexer.\n");
         return MINIC_EXIT_INTERNAL;
@@ -28,14 +30,20 @@ parser(FILE *file)
         return MINIC_EXIT_INTERNAL;
     }
 
-    result = parser_parse_program(&parser);
+    result = parser_parse_program(&parser, &root);
 
+    if (result == PARSE_OK) {
+        printf("AST:\n");
+        ast_print(root);
+        printf("Programa sintacticamente correcto.\n");
+    }
+
+    ast_destroy(root);          /* acepta NULL */
     parser_destroy(&parser);
     lexer_destroy(&lexer);
 
     switch (result) {
     case PARSE_OK:
-        printf("Programa sintacticamente correcto.\n");
         return MINIC_EXIT_OK;
     case PARSE_INVALID:
         return MINIC_EXIT_INVALID;

@@ -1,0 +1,16 @@
+AST:
+Program
+  VariableDeclaration(int, x)
+    Add
+      Negate
+        Multiply
+          Add
+            Integer(2)
+            Integer(3)
+          Subtract
+            Integer(4)
+            Integer(1)
+      Divide
+        Integer(10)
+        Integer(2)
+Programa sintacticamente correcto.

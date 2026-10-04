@@ -5,7 +5,8 @@ TARGET = minic
 SOURCES = src/main.c \
           src/lexer/token.c src/lexer/keywords.c \
           src/lexer/lexer.c src/lexer/buffer_manage.c \
-          src/parser/parser.c src/parser/grammar.c
+          src/parser/parser.c src/parser/grammar.c \
+          src/ast/ast.c
 HEADERS = $(wildcard include/lexer/*.h include/parser/*.h)
 BUILD_DIR = build
 
@@ -19,6 +20,9 @@ PUBLIC_P2_EXPECTED_DIR = tests/public/p2/expected
 # P3 usa un script
 PUBLIC_P3_SCRIPT = tests/public/p3/run_public_tests.sh
 
+# P4 usa un script
+PUBLIC_P4_SCRIPT = tests/public/p4/run_public_tests.sh
+
 # Pruebas propias
 UNIT_LEXER_INPUT_DIR = tests/unit_tests/lexer/inputs
 UNIT_LEXER_EXPECTED_DIR = tests/unit_tests/lexer/expected
@@ -26,8 +30,11 @@ UNIT_LEXER_EXPECTED_DIR = tests/unit_tests/lexer/expected
 UNIT_PARSER_INPUT_DIR = tests/unit_tests/parser/inputs
 UNIT_PARSER_EXPECTED_DIR = tests/unit_tests/parser/expected
 
-.PHONY: all test test-cli test-p1 test-p2 test-p3 \
-        test-unit test-unit-lexer test-unit-parser test-args clean
+UNIT_AST_INPUT_DIR = tests/unit_tests/ast/inputs
+UNIT_AST_EXPECTED_DIR = tests/unit_tests/ast/expected
+
+.PHONY: all test test-cli test-p1 test-p2 test-p3 test-p4 \
+        test-unit test-unit-lexer test-unit-parser test-unit-ast test-args clean
 
 all: $(TARGET)
 
@@ -86,7 +93,7 @@ endef
 
 
 ## ---------- Pruebas ayudante ----------
-test-cli: test-p1 test-p2 test-p3
+test-cli: test-p1 test-p2 test-p3 test-p4
 
 ## P1 y P2 validan tokens usando el modo -t
 test-p1: $(TARGET)
@@ -102,6 +109,12 @@ test-p3: $(TARGET)
 	@sh $(PUBLIC_P3_SCRIPT) | tee $(BUILD_DIR)/public-p3.log
 	@grep -q '^Fallidas: 0$$' $(BUILD_DIR)/public-p3.log
 
+## P4 usa script
+test-p4: $(TARGET)
+	@mkdir -p $(BUILD_DIR)
+	@echo "==== public-p4 ===="
+	@sh $(PUBLIC_P4_SCRIPT) ./$(TARGET) | tee $(BUILD_DIR)/public-p4.log
+	@grep -q '^Fallidas: 0$$' $(BUILD_DIR)/public-p4.log
 
 ## ---------- Pruebas propias ----------
 test-unit: test-unit-lexer test-unit-parser
@@ -113,6 +126,10 @@ test-unit-lexer: $(TARGET)
 ## Casos propios del parser (P3)
 test-unit-parser: $(TARGET)
 	$(call run_test_dir,$(UNIT_PARSER_INPUT_DIR),$(UNIT_PARSER_EXPECTED_DIR),,unit-parser)
+
+## Casos propios del parser (P4)
+test-unit-ast: $(TARGET)
+	$(call run_test_dir,$(UNIT_AST_INPUT_DIR),$(UNIT_AST_EXPECTED_DIR),,unit-ast)
 
 ## Validacion de la linea de comandos.
 test-args: $(TARGET)
@@ -147,3 +164,4 @@ test-args: $(TARGET)
 clean:
 	$(RM) $(TARGET) $(TARGET).exe
 	$(RM) -r $(BUILD_DIR)
+ 

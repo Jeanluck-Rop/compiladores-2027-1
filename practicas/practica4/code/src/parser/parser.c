@@ -215,16 +215,30 @@ parser_init(Parser *parser,
 
 /* Analizamos el programa completo y traducimos el estado final a un ParseResult */
 ParseResult
-parser_parse_program(Parser *parser)
+parser_parse_program(Parser *parser, ASTNode **out_root)
 {
+    ASTNode *root;
+
+    if (out_root == NULL)
+        return PARSE_INTERNAL_FAILURE;
+    *out_root = NULL;
+
     if (parser == NULL || parser->lexer == NULL || !parser->has_current)
         return PARSE_INTERNAL_FAILURE;
 
-    parse_program(parser);
+    root = parse_program(parser);
 
-    if (parser->internal_failure)
+    if (parser->internal_failure) {
+        ast_destroy(root);
         return PARSE_INTERNAL_FAILURE;
-    return parser->had_error ? PARSE_INVALID : PARSE_OK;
+    }
+    if (parser->had_error || root == NULL) {
+        ast_destroy(root);
+        return parser->had_error ? PARSE_INVALID : PARSE_INTERNAL_FAILURE;
+    }
+
+    *out_root = root;
+    return PARSE_OK;
 }
 
 /* Liberamos los tokens que conserva el parser; el lexer no le pertenece */

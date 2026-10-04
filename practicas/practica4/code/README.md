@@ -20,7 +20,46 @@
 ## Estructura del proyecto
 
 ```
-Practica04_Equipo14/
+Practica03_Equipo14/
+├── CHANGELOG.md
+├── include
+│   ├── ast
+│   │   └── ast.h
+│   ├── lexer
+│   │   ├── buffer_manage.h
+│   │   ├── keywords.h
+│   │   ├── lexer.h
+│   │   └── token.h
+│   └── parser
+│       ├── grammar.h
+│       ├── parser.h
+│       └── parser_internal.h
+├── Makefile
+├── minic
+├── README.md
+├── src
+│   ├── ast
+│   │   └── ast.c
+│   ├── lexer
+│   │   ├── buffer_manage.c
+│   │   ├── keywords.c
+│   │   ├── lexer.c
+│   │   └── token.c
+│   ├── main.c
+│   └── parser
+│       ├── grammar.c
+│       ├── parser.c
+│       └── parser_internal.c
+└── tests
+    ├── public
+    │   ├── p1
+    │   ├── p2
+    |   ├── p3
+    │   └── p4
+    └── unit_tests
+        ├── ast
+        ├── lexer
+        └── parser
 ...
 ```
 
@@ -37,11 +76,11 @@ Practica04_Equipo14/
 | `src/lexer/lexer.c`                | Interfaz incremental del lexer: entrega un token por llamada.                                            |
 | `src/parser/parser.c`              | Flujo de tokens: lookahead, avance, consumo, diagnósticos y sincronización.                              |
 | `src/parser/grammar.c`             | Una función por no terminal de la gramática de MiniC.                                                    |
+| `src/ast/ast.c`                    | Lista dinámica de nodos, constructores, impresión en formato canónico y liberación recursiva del AST.    |
 | `include/parser/parser.h`          | Interfaz pública del parser (la única que usa `main.c`).                                                 |
 | `include/parser/parser_internal.h` | Operaciones auxiliares compartidas entre `parser.c` y `grammar.c`.                                       |
 | `include/parser/grammar.h`         | Punto de entrada de la gramática (`parse_program`).                                                      |
-
-
+| `include/ast/ast.h`                | Tipos de nodo, operadores, estructura `ASTNode`, `ASTNodeList` y prototipos de constructores, impresión y liberación. |
 ## Requisitos
 
 - GCC con soporte para C11.
@@ -105,6 +144,18 @@ Cuando el token encontrado es el fin del archivo se imprime `TOKEN_EOF` en lugar
 - `parser_destroy` libera ambos tokens exactamente una vez, aunque haya habido errores.
 - El lexer no reserva memoria propia; ni el lexer ni el parser son dueños del archivo, que cierra `main.c`.
 
+### Propiedad de memoria del AST
+
+- El AST guarda copias propias de nombres y lexemas; nunca apuntadores a tokens del lexer o del parser.
+  Las cadenas se copian antes de que `parser_advance` destruya el token que las contenía.
+- Cada nodo es dueño de sus hijos; `Program` y `Block` son dueños de sus listas, y la raíz es dueña de todo
+  el árbol.
+- Los constructores `ast_create_*` adquieren los hijos (o la lista) solo si devuelven un nodo válido; si
+  devuelven `NULL`, siguen siendo del llamador. `ast_node_list_append` sigue la misma regla.
+- `parser_parse_program(parser, &root)` entrega la raíz solo con `PARSE_OK`; con cualquier otro resultado
+  `root` es `NULL` y el parser ya liberó los nodos parciales. El llamador libera la raíz con `ast_destroy`,
+  que acepta `NULL`.
+
 ## Funcionalidades implementadas
 
 - Interfaz incremental del lexer (`lexer_init`, `lexer_next_token`, `lexer_destroy`) que no imprime tokens
@@ -115,6 +166,15 @@ Cuando el token encontrado es el fin del archivo se imprime `TOKEN_EOF` en lugar
   - ciclos `while` y bloques `{ ... }`;
   - expresiones con la precedencia y asociatividad publicadas (`||`, `&&`, `==` `!=`, `<` `<=` `>` `>=`,
     `+` `-`, `*` `/`, `-` unario y paréntesis).
+- Construcción de un Árbol de Sintaxis Abstracta durante el análisis:
+  - nodos para programa, bloque, declaración (con inicializador opcional), asignación, `print`, `if` (con
+    `else` opcional), `while`, expresiones binarias y unarias, identificadores y literales enteros y booleanos;
+  - asociatividad izquierda de los operadores binarios y asociatividad derecha de la negación, reflejadas en
+    la forma del árbol;
+  - los paréntesis, los puntos y coma y demás tokens de sintaxis concreta no generan nodos;
+  - línea y columna almacenadas en cada nodo, con las posiciones fijadas por el enunciado.
+- Impresión del AST en formato canónico (`ast_print`) y liberación recursiva completa (`ast_destroy`).
+- Si hay cualquier error léxico o sintáctico, no se entrega ni se imprime ningún AST parcial.
 - Diagnósticos sintácticos con línea, columna, elemento esperado y lexema encontrado, en `stderr`.
 - Un único diagnóstico léxico por cada token `ERROR`, sin error sintáctico adicional.
 - Recuperación por sentencias con los tokens de sincronización publicados, sin ciclos infinitos ni errores
@@ -130,10 +190,13 @@ Más detalles sobre diseño e implementación en el reporte de la práctica.
   (`make test-p1`, `make test-p2`).
 - `tests/public/p3/`: pruebas públicas de la Práctica 3, ejecutadas con su propio script
   `run_public_tests.sh` (`make test-p3`).
+- `tests/public/p4/`: pruebas públicas de la Práctica 4, ejecutadas con su propio script
+  `run_public_tests.sh` (`make test-p4`).
 - `tests/unit_tests/lexer/`: pruebas propias del lexer (`make test-unit-lexer`).
 - `tests/unit_tests/parser/`: pruebas propias del parser, enfocadas en la recuperación ante errores
   léxicos y sintácticos (`make test-unit-parser`). Cada caso compara `stdout` (`.out`), `stderr` (`.err`)
   y código de salida (`.code`).
+- `tests/unit_tests/ast/`: pruebas propias de la estructura del AST (`make test-unit-ast`).
 - `make test-args`: validación de la línea de comandos (sin archivo, dos archivos, archivo inexistente, etc.).
 - `make test-cli` corre `test-p1`, `test-p2` y `test-p3`; `make test-unit` corre `test-unit-lexer` y
   `test-unit-parser`; `make test` corre `test-cli`, `test-unit` y `test-args`.

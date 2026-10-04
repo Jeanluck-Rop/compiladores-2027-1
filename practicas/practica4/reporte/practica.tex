@@ -102,143 +102,979 @@
 % ================================================================
 
 \begin{quote}
-  En esta práctica nuestro objetivo fue implementar la generación de árboles de sintaxis abstracta para el parser
-  de \minic ...
+  En esta práctica extendimos el analizador sintáctico descendente recursivo de la Práctica 3 para que,
+  además de validar la sintaxis de un programa en \minic, construya un Árbol de Sintaxis Abstracta (AST)
+  que represente su estructura esencial. La Práctica 3 respondía a la pregunta \emph{¿el programa está bien
+  escrito?}; ahora el parser también responde \emph{¿cómo está construido?}.\\
+
+  El AST es la representación que consumirán el análisis semántico y la generación de código, por lo que en
+  esta entrega no hacemos validaciones semánticas, tabla de símbolos, verificación de tipos ni generación de
+  código. Concretamente, el objetivo es:
+
+  \begin{enumerate}[label=\arabic*.]
+  \item Diseñar una jerarquía de nodos para programas, declaraciones, sentencias y expresiones
+  \item Modificar las funciones del parser para que devuelvan el nodo que reconocen
+  \item Reflejar la precedencia y la asociatividad de los operadores en la forma del árbol
+  \item Conservar la línea y la columna de cada construcción
+  \item Definir un único propietario para cada recurso dinámico y liberar el árbol completo
+  \item Imprimir el árbol en un formato jerárquico y determinista
+  \item No entregar jamás un árbol parcial cuando existan errores léxicos o sintácticos
+  \end{enumerate}
 \end{quote}
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 % ================================================================
 \section*{Evolución respecto de la Práctica 3}
 % ================================================================
 
-\begin{lstlisting}[style=modernc, caption={\texttt{fn} implementada}]
+\subsection*{Módulos modificados o agregados}
+
+\begin{itemize}
+\item \texttt{ast.h} y \texttt{ast.c}: módulo nuevo con los tipos de nodo, la lista dinámica de sentencias,
+  los constructores, la impresión del árbol y su liberación recursiva.
+\item \texttt{grammar.c} y \texttt{grammar.h}: todas las funciones de la gramática pasaron de \texttt{void}
+  a \texttt{ASTNode *}, y construyen y devuelven el nodo que reconocen. \texttt{parse\_program} ahora
+  devuelve la raíz.
+\item \texttt{parser.h} y \texttt{parser.c}: \texttt{parser\_parse\_program} recibe ahora un parámetro de
+  salida con la raíz del árbol. El resto de \texttt{parser.c} (flujo de tokens, diagnósticos y
+  sincronización) no cambió.
+\item \texttt{main.c}: imprime \texttt{AST:}, el árbol y el mensaje final solo cuando el análisis fue
+  correcto, y libera el árbol.
+\item \texttt{lexer}, \texttt{token}, \texttt{keywords}, \texttt{buffer\_manage} y
+  \texttt{parser\_internal.h} se conservan sin cambios.
+\end{itemize}
+
+\subsection*{Cambio de interfaz en \texttt{parser\_parse\_program}}
+
+\begin{lstlisting}[style=modernc, caption={Interfaz modificada de \texttt{parser.h}.}]
+/*
+ * - PARSE_OK: *out_root es la raiz del AST; el llamador es su
+ *   propietario y debe liberarlo con ast_destroy.
+ * - PARSE_INVALID / PARSE_INTERNAL_FAILURE: *out_root es NULL; el
+ *   parser ya libero cualquier arbol parcial.
+ */
+ParseResult parser_parse_program(Parser *parser, ASTNode **out_root);
 \end{lstlisting}
 
 \bigskip
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Mantuvimos el contrato de errores de la Práctica 3 (\texttt{ParseResult}) y entregamos el árbol por un
+parámetro de salida. De este modo es imposible que un llamador reciba un AST junto con un resultado
+inválido: si el resultado no es \texttt{PARSE\_OK}, \texttt{*out\_root} vale \texttt{NULL}.
+
+\subsection*{Función \texttt{parse\_statement\_list}}
+
+La función \texttt{parse\_statement\_list} de la Práctica 3 desapareció. Su ciclo pasó a
+\texttt{parse\_program}, porque ahora cada sentencia reconocida debe agregarse a una lista de nodos y, al
+final, \texttt{parse\_program} decide si entrega la raíz o \texttt{NULL}. Mantener una función aparte
+solo habría obligado a pasarle la lista y un indicador de fallo.
+
+
+% ================================================================
+\section*{Diseño del AST}
+% ================================================================
+
+\subsection*{Tipos de nodo, operadores y tipos declarados}
+
+\begin{lstlisting}[style=modernc, caption={Enumeraciones de \texttt{ast.h}.}]
+typedef enum {
+    AST_PROGRAM, AST_BLOCK,
+    AST_VARIABLE_DECLARATION, AST_ASSIGNMENT, AST_PRINT,
+    AST_IF, AST_WHILE,
+    AST_BINARY_EXPRESSION, AST_UNARY_EXPRESSION,
+    AST_IDENTIFIER, AST_INTEGER_LITERAL, AST_BOOLEAN_LITERAL
+} ASTNodeType;
+
+typedef enum { AST_TYPE_INT, AST_TYPE_BOOL } ASTDeclaredType;
+
+typedef enum {
+    OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE,
+    OP_LESS, OP_LESS_EQUAL, OP_GREATER, OP_GREATER_EQUAL,
+    OP_EQUAL, OP_NOT_EQUAL, OP_AND, OP_OR
+} BinaryOperator;
+
+typedef enum { OP_NEGATE } UnaryOperator;
+\end{lstlisting}
+
 \bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Usamos un único tipo de nodo para todas las expresiones binarias, y una enumeración
+\texttt{BinaryOperator} que clasifica el operador, de modo que el AST nunca depende del lexema. El tipo
+declarado de una variable se representa con \texttt{ASTDeclaredType} en lugar de reutilizar
+\texttt{TokenType}, así el módulo del AST no depende del lexer.
 
-% ================================================================
-\section*{Diseño del ASA}
-% ================================================================
+\subsection*{Estructura general del nodo}
 
+Cada nodo guarda su tipo, su posición y una unión con los datos específicos de su categoría:
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lstlisting}[style=modernc, caption={Estructura \texttt{ASTNode} (resumida).}]
+struct ASTNode {
+    ASTNodeType type;
+    int line;
+    int column;
+
+    union {
+        struct { ASTNodeList statements; } program;
+        struct { ASTNodeList statements; } block;
+        struct { ASTDeclaredType declared_type; char *name;
+                 ASTNode *initializer; } variable_declaration;
+        struct { char *name; ASTNode *value; } assignment;
+        struct { ASTNode *expression; } print_statement;
+        struct { ASTNode *condition, *then_branch,
+                 *else_branch; } if_statement;
+        struct { ASTNode *condition, *body; } while_statement;
+        struct { BinaryOperator operator;
+                 ASTNode *left, *right; } binary;
+        struct { UnaryOperator operator; ASTNode *operand; } unary;
+        struct { char *name; } identifier;
+        struct { char *lexeme; } integer_literal;
+        struct { int value; } boolean_literal;
+    } data;
+};
+\end{lstlisting}
+
 \bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+La ausencia de inicializador en una declaración y de rama \texttt{else} se representan con \texttt{NULL}. El
+literal entero conserva su lexema como cadena, de modo que no se pierde información ni se impone un tamaño de
+entero antes del análisis semántico.
+
+\subsection*{Información de posición}
+
+Todos los nodos almacenan línea (desde 1) y columna (desde 0), con la misma convención del lexer. La posición
+de cada nodo es la que fija el enunciado:
+
+\begin{itemize}
+\item \texttt{Program}: la de la primera sentencia o, si el programa está vacío, la de \texttt{TOKEN\_EOF}.
+\item \texttt{Block}, \texttt{if}, \texttt{while} y \texttt{print}: la de \texttt{\{}, \texttt{if},
+  \texttt{while} y \texttt{print}, respectivamente.
+\item Declaración: la del identificador declarado (será la usada para reportar redeclaraciones).
+\item Asignación: la del identificador destino.
+\item Expresión binaria: la del token del operador. Expresión unaria: la del \texttt{-}.
+\item Identificadores y literales: la de su propio token.
+\end{itemize}
+
+Los paréntesis no generan nodo, así que la expresión interna conserva su posición original. Como el lexer
+usa \texttt{size\_t} para línea y columna y el AST usa \texttt{int}, la conversión se hace en un solo lugar
+de \texttt{grammar.c} (\texttt{current\_line} y \texttt{current\_column}). Las posiciones no se imprimen, pero
+quedan almacenadas para los diagnósticos de etapas posteriores.
+
+\subsection*{Lista dinámica de sentencias}
+
+\texttt{Program} y \texttt{Block} contienen un \texttt{ASTNodeList}, un arreglo dinámico que duplica su
+capacidad al llenarse (capacidad inicial de 8), por lo que no existe un límite fijo de sentencias.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{ast\_node\_list\_append}.}]
+int
+ast_node_list_append(ASTNodeList *list, ASTNode *node)
+{
+    if (list == NULL || node == NULL)
+        return 0;
+
+    if (list->count == list->capacity) {
+        size_t new_capacity = list->capacity ? list->capacity * 2 : 8;
+        ASTNode **items;
+
+        if (new_capacity > SIZE_MAX / sizeof(*items))
+            return 0;
+        items = realloc(list->items, new_capacity * sizeof(*items));
+        if (items == NULL)
+            return 0;
+        list->items = items;
+        list->capacity = new_capacity;
+    }
+
+    list->items[list->count++] = node;
+    return 1;
+}
+\end{lstlisting}
+
+\bigskip
+
+El resultado de \texttt{realloc} se guarda primero en una variable temporal, de modo que si falla el arreglo
+anterior no se pierde. Si la operación falla, el nodo sigue perteneciendo a quien llamó.
 
 
 % ================================================================
-\section*{Construcción desde el Parser}
+\section*{Propiedad de la memoria}
 % ================================================================
 
+Definimos un único propietario para cada recurso dinámico:
+
+\begin{itemize}
+\item El AST guarda copias propias de nombres de identificadores y de lexemas enteros; nunca apuntadores a
+  lexemas de tokens. Cada constructor que recibe una cadena la copia.
+\item Cada nodo es propietario de sus hijos, \texttt{Program} y \texttt{Block} lo son de sus listas, y la
+  raíz lo es de todo el árbol.
+\item \textbf{Constructores:} si devuelven un nodo válido, este adquiere la propiedad de los hijos (o de la
+  lista). Si devuelven \texttt{NULL}, los hijos siguen siendo de quien llamó, que debe liberarlos.
+\item \textbf{\texttt{ast\_node\_list\_append}:} si termina bien, la lista adquiere el nodo; si falla, el nodo
+  sigue siendo del llamador.
+\item \textbf{\texttt{ast\_destroy}:} acepta \texttt{NULL} y libera recursivamente cadenas, hijos, listas y el
+  propio nodo. Liberar la raíz libera todo el árbol.
+\end{itemize}
+
+La propiedad de los tokens sigue el contrato de la Práctica 3. El punto delicado es que
+\texttt{parser\_advance} destruye el token \texttt{previous} anterior, así que cualquier cadena que deba
+sobrevivir debe copiarse \emph{antes} de avanzar. Por eso las funciones que construyen nodos con nombre
+(\texttt{parse\_declaration} y \texttt{parse\_assignment}) copian el lexema del identificador antes de
+llamar a \texttt{parser\_advance}, y los literales e identificadores de \texttt{parse\_primary} se crean antes
+de consumir su token.
+
+\begin{lstlisting}[style=modernc, caption={Copia del nombre antes de avanzar en \texttt{parse\_declaration}.}]
+    line = current_line(parser);
+    column = current_column(parser);
+    name = copy_string(parser->current.lexeme);
+    if (name == NULL)
+        return fail_memory(parser);
+    parser_advance(parser);   /* el token actual ya no se necesita */
+\end{lstlisting}
+
+
+% ================================================================
+\section*{Construcción del AST desde el parser}
+% ================================================================
+
+\subsection*{Convención de errores}
+
+Cada función de \texttt{grammar.c} devuelve el nodo que reconoce o \texttt{NULL}. Un \texttt{NULL} siempre
+viene acompañado de un error ya reportado (\texttt{had\_error}) o de una falla interna
+(\texttt{internal\_failure}). Quien recibe \texttt{NULL} libera los nodos parciales que todavía posee y
+propaga el \texttt{NULL} hacia arriba.
+
+Cuando un constructor \texttt{ast\_create\_*} devuelve \texttt{NULL}, \texttt{fail\_memory} imprime el
+mensaje de memoria, activa \texttt{internal\_failure} y detiene el análisis, de modo que el resultado final
+es \texttt{PARSE\_INTERNAL\_FAILURE} (código de salida \texttt{2}).
+
+\subsection*{Sentencias}
+
+\begin{itemize}
+\item \texttt{parse\_statement}: elige la producción por el token de anticipación, igual que en la Práctica 3,
+  devuelve el nodo y sincroniza si quedó activo \texttt{panic\_mode}.
+\item \texttt{parse\_declaration}: devuelve un nodo con el tipo, el nombre y el inicializador opcional (sin
+  crear un nodo de asignación aparte).
+\item \texttt{parse\_assignment}, \texttt{parse\_print\_statement}, \texttt{parse\_if\_statement} y
+  \texttt{parse\_while\_statement}: construyen su nodo después de reconocer todos sus componentes. Si alguno
+  falla, liberan los que ya construyeron.
+\item \texttt{parse\_block}: sigue analizando sentencias tras un error para recuperarse, pero descarta la lista
+  y devuelve \texttt{NULL} si cualquiera falló.
+\item \texttt{parse\_program}: acumula las sentencias en una lista, y devuelve la raíz solo si no hubo ningún
+  error léxico, sintáctico o interno.
+\end{itemize}
+
+\begin{lstlisting}[style=modernc, caption={Resultado de \texttt{parse\_program} ante errores.}]
+    if (failed || parser->had_error || parser->internal_failure) {
+        ast_node_list_destroy(&list);
+        return NULL;
+    }
+\end{lstlisting}
+
+\bigskip
+
+Un error léxico no interrumpe el análisis (el token \texttt{ERROR} se reporta y se descarta), pero activa
+\texttt{had\_error}, por lo que \texttt{parse\_program} nunca entrega árbol aunque las sentencias restantes
+sean válidas.
+
+\subsection*{Expresiones binarias}
+
+En la Práctica 3 había seis funciones casi idénticas, una por nivel de precedencia. Ahora todas comparten una
+función genérica que recibe la función del nivel inmediato superior y una tabla de pares
+\texttt{(token, operador)}:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{parse\_binary\_level}, núcleo de las expresiones binarias.}]
+static ASTNode *
+parse_binary_level(Parser *parser, ParseFn next,
+                   const BinaryOpEntry *ops, size_t count)
+{
+    ASTNode *left = next(parser);
+
+    while (left != NULL && !parser->panic_mode
+           && !parser->internal_failure) {
+        const BinaryOpEntry *found = NULL;
+        ASTNode *right, *node;
+        size_t i;
+        int line, column;
+
+        for (i = 0; i < count; i++)
+            if (parser_check(parser, ops[i].token)) {
+                found = &ops[i];
+                break;
+            }
+        if (found == NULL)
+            break;
+
+        line = current_line(parser);
+        column = current_column(parser);
+        parser_advance(parser);
+
+        right = next(parser);
+        if (right == NULL) {
+            ast_destroy(left);
+            return NULL;
+        }
+
+        node = ast_create_binary(found->op, left, right, line, column);
+        if (node == NULL) {
+            ast_destroy(left);
+            ast_destroy(right);
+            return fail_memory(parser);
+        }
+        left = node;
+    }
+    return left;
+}
+\end{lstlisting}
+
+\bigskip
+
+Este ciclo construye el árbol de izquierda a derecha: el nodo recién creado pasa a ser el operando izquierdo de
+la siguiente iteración. Por eso \texttt{10 - 5 - 2} produce \texttt{Subtract(Subtract(10, 5), 2)} y no
+\texttt{Subtract(10, Subtract(5, 2))}. La posición del nodo es la del operador, que se guarda \emph{antes} de
+avanzar. Los niveles son \texttt{parse\_or\_expression}, \texttt{parse\_and\_expression},
+\texttt{parse\_equality\_expression}, \texttt{parse\_comparison\_expression},
+\texttt{parse\_additive\_expression} y \texttt{parse\_multiplicative\_expression}, cada uno con su tabla.
+La precedencia sigue saliendo del orden en que se llaman, como en la Práctica 3.
+
+\subsection*{Expresiones unarias y primarias}
+
+\begin{itemize}
+\item \texttt{parse\_unary\_expression}: si hay \texttt{-}, guarda su posición, avanza, se llama
+  recursivamente y crea un nodo \texttt{Negate}. La recursión hacia la derecha conserva la asociatividad
+  derecha de la gramática, de modo que \texttt{--x} produce \texttt{Negate(Negate(x))}.
+\item \texttt{parse\_primary}: crea un nodo de entero, booleano o identificador. Para una expresión entre
+  paréntesis devuelve directamente el nodo de la expresión interna, sin nodo de paréntesis, pues su efecto
+  queda reflejado en la estructura. Así \texttt{(5 + 2) * 3} produce \texttt{Multiply(Add(5, 2), 3)}.
+\end{itemize}
+
+
+% ================================================================
+\section*{Manejo de errores y recuperación}
+% ================================================================
+
+La recuperación de la Práctica 3 se conserva sin cambios: \texttt{parser\_error} imprime un único diagnóstico
+por sentencia gracias a \texttt{panic\_mode}, y \texttt{parser\_sync} descarta tokens hasta un punto seguro.
+Las reglas adicionales de esta práctica son:
+
+\begin{itemize}
+\item Si hubo al menos un error, el programa se marca como inválido y no se entrega árbol.
+\item Los nodos parciales se liberan en cuanto dejan de poder formar un árbol válido, en la función que los
+  posee.
+\item Los diagnósticos van a \texttt{stderr}, \texttt{stdout} permanece vacío y el código de salida es
+  distinto de cero.
+\item Por ejemplo, ante \texttt{x = 5 + ;} no se construye ningún nodo \texttt{Add} con operando derecho
+  inexistente: \texttt{parse\_primary} devuelve \texttt{NULL}, \texttt{parse\_binary\_level} libera el
+  operando izquierdo y propaga \texttt{NULL}, y \texttt{parse\_assignment} libera su nombre copiado.
+\end{itemize}
+
+Un detalle importante es el de \texttt{parse\_if\_statement}: tras un error en la rama verdadera, el parser
+igualmente comprueba si sigue un \texttt{else} para no dejarlo huérfano y reportar un error de más. Después
+libera condición y ramas y devuelve \texttt{NULL}.
+
+
+% ================================================================
+\section*{Impresión y liberación del AST}
+% ================================================================
+
+\texttt{ast\_print} imprime el árbol con el formato canónico: dos espacios por nivel, un elemento por línea,
+sin conectores gráficos, tabuladores, líneas vacías ni direcciones. El encabezado \texttt{AST:} y el mensaje
+final son responsabilidad de \texttt{main.c}. Las etiquetas \texttt{Condition}, \texttt{Then}, \texttt{Else} y
+\texttt{Body} solo se imprimen para identificar la función de cada hijo y no son nodos reales del AST.
+
+Para el programa
 
 \begin{verbatim}
-
+int x = 5;
+x = x + 3;
+print(x);
 \end{verbatim}
 
+el programa imprime:
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{verbatim}
+AST:
+Program
+  VariableDeclaration(int, x)
+    Integer(5)
+  Assignment(x)
+    Add
+      Identifier(x)
+      Integer(3)
+  Print
+    Identifier(x)
+Programa sintacticamente correcto.
+\end{verbatim}
 
+\texttt{ast\_destroy} recorre el árbol según el tipo de cada nodo: libera las cadenas copiadas, destruye
+recursivamente los hijos y las listas de \texttt{Program} y \texttt{Block}, y finalmente el propio nodo.
+Aceptar \texttt{NULL} simplifica los constructores y la limpieza de errores, porque una declaración sin
+inicializador o un \texttt{if} sin \texttt{else} se liberan sin casos especiales.
 
-% ================================================================
-\section*{Propiedad y memoria}
-% ================================================================
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% ================================================================
-\section*{Impresión canónica}
-% ================================================================
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% ================================================================
-\section*{Diagnósticos y recuperación}
-% ================================================================
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Flujo de \texttt{main.c}.} En modo normal, si \texttt{parser\_parse\_program} devuelve
+\texttt{PARSE\_OK} se imprimen \texttt{AST:}, el árbol y el mensaje de éxito. En cualquier caso se llama a
+\texttt{ast\_destroy}, que acepta la raíz \texttt{NULL}, y después se liberan el parser y el lexer.
 
 
 % ================================================================
-\section*{Resultados y pruebas}
+\section*{Resultados y pruebas}\label{sec:resultados}
 % ================================================================
 
+\subsection*{Cambios en el \texttt{Makefile}}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Respecto de la Práctica 4, el \texttt{Makefile} cambió en los siguientes puntos:
 
+\begin{itemize}
+
+\item Se agregaron las variables \texttt{UNIT7\_AST\_INPUT\_DIR} y \texttt{UNIT\_AST\_EXPECTED\_DIR}, que indican,
+respectivamente, la ubicación de los programas MiniC utilizados como casos de prueba del AST y la ubicación
+de los archivos \texttt{.out} que contienen las salidas esperadas.
+
+\begin{verbatim}
+UNIT_AST_INPUT_DIR = tests/unit_tests/ast/inputs
+UNIT_AST_EXPECTED_DIR = tests/unit_tests/ast/expected
+\end{verbatim}
+
+\item Se modificó el objetivo \texttt{test-unit} para incluir \texttt{test-unit-ast}, de modo que las pruebas
+del AST se ejecuten junto con las pruebas unitarias del Lexer y del Parser.
+
+\begin{verbatim}
+test-unit: test-unit-lexer test-unit-parser test-unit-ast ...
+\end{verbatim}
+
+\item Se agregó el objetivo \texttt{test-unit-ast}, el cual utiliza la plantilla \texttt{run\_test\_dir} para
+ejecutar los casos de prueba ubicados en \texttt{tests/unit\_tests/ast/inputs} y comparar sus resultados con
+los archivos correspondientes de \texttt{tests/unit\_tests/ast/expected}.
+
+\begin{verbatim}
+test-unit-ast: $(TARGET)
+$(call run_test_dir,$(UNIT_AST_INPUT_DIR),$(UNIT_AST_EXPECTED_DIR),,unit-ast)
+\end{verbatim}
+
+\item Las pruebas propias del AST pueden ejecutarse de manera independiente mediante
+\texttt{make test-unit-ast}. Al estar incluidas dentro de \texttt{test-unit}, también se ejecutan mediante
+\texttt{make test-unit} y, de forma indirecta, mediante \texttt{make test}, que agrupa las pruebas de la
+interfaz de línea de comandos, las pruebas unitarias y las pruebas de argumentos.
+
+\item Se incorporó la prueba pública correspondiente a la Práctica 4 mediante la variable
+\texttt{PUBLIC\_P4\_SCRIPT}, que indica la ubicación del script encargado de ejecutar los casos públicos.
+
+\begin{verbatim}
+PUBLIC_P4_SCRIPT = tests/public/p4/run_public_tests.sh
+\end{verbatim}
+
+\item Se agregó el objetivo \texttt{test-p4}, encargado de ejecutar el script de pruebas públicas, almacenar
+su salida en \texttt{build/public-p4.log} y comprobar mediante \texttt{grep} que no existan pruebas fallidas.
+
+\begin{verbatim}
+test-p4: $(TARGET)
+@mkdir -p $(BUILD_DIR)
+@echo "==== public-p4 ===="
+@sh $(PUBLIC_P4_SCRIPT) ./$(TARGET) | tee $(BUILD_DIR)/public-p4.log
+@grep -q '^Fallidas: 0$$' $(BUILD_DIR)/public-p4.log
+\end{verbatim}
+
+\end{itemize}
+
+\subsection*{Pruebas públicas de la Práctica 4}
+
+Al ejecutar las pruebas proporcionadas en \texttt{make test-p4} los resultados todos pasaron sin problemas.
+
+\begin{verbatim}
+❯ make test-p4
+==== public-p4 ====
+[OK] p01_empty
+[OK] p02_declarations
+[OK] p03_initializers
+[OK] p04_assignment_print
+[OK] p05_precedence
+[OK] p06_unary_parentheses
+[OK] p07_if_else
+[OK] p08_while_block
+[OK] p09_nested_blocks
+[OK] p10_complete_program
+[OK] p11_syntax_error
+[OK] p12_lexical_error
+
+Aprobadas: 12
+Fallidas: 0
+\end{verbatim}
+
+Las pruebas públicas comparan \texttt{stdout} contra el AST canónico, de modo que verifican la estructura del árbol y no solo que el programa sea aceptado.
+
+\subsection*{Pruebas propias del AST}
+Además de las pruebas públicas proporcionadas para la práctica, se diseñaron pruebas propias enfocadas específicamente en verificar la correcta construcción del Árbol de Sintaxis Abstracta (AST).
+
+Estas pruebas buscan comprobar aspectos que pueden presentar errores durante la implementación del parser, principalmente la precedencia y asociatividad de operadores, el manejo de operadores unarios, los paréntesis y la asociación de sentencias condicionales y ciclos.
+
+Las pruebas se organizaron de la siguiente manera:
+
+\begin{verbatim}
+tests/unit_tests/ast/
+├── inputs/
+│   ├── ut_ast_assoc_add.mc
+│   ├── ut_ast_assoc_mul.mc
+│   ├── ut_ast_mixed_operators.mc
+│   ├── ut_ast_multiple_unary.mc
+│   ├── ut_ast_nested_parentheses.mc
+│   ├── ut_ast_boolean_expression.mc
+│   ├── ut_ast_dangling_else.mc
+│   ├── ut_ast_single_statement_while.mc
+│   └── ut_ast_deep_expression.mc
+└── expected/
+├── ut_ast_assoc_add.out
+├── ut_ast_assoc_mul.out
+├── ut_ast_mixed_operators.out
+├── ut_ast_multiple_unary.out
+├── ut_ast_nested_parentheses.out
+├── ut_ast_boolean_expression.out
+├── ut_ast_dangling_else.out
+├── ut_ast_single_statement_while.out
+└── ut_ast_deep_expression.out
+\end{verbatim}
+
+Cada archivo de entrada contiene un programa MiniC y cada archivo \texttt{.out} contiene la representación esperada del AST generado por el compilador.
+
+\subsection*{Asociatividad de operadores}
+
+La primera prueba utiliza la expresión:
+
+\begin{verbatim}
+int x = 10 + 5 + 2;
+\end{verbatim}
+
+El resultado esperado es:
+
+\begin{verbatim}
+Add
+Add
+Integer(10)
+Integer(5)
+Integer(2)
+\end{verbatim}
+
+Esta prueba permite verificar que las operaciones de suma se construyen de forma asociativa hacia la izquierda, es decir, como \texttt{(10 + 5) + 2}.
+
+De manera similar, se probó la multiplicación mediante:
+
+\begin{verbatim}
+int x = 2 * 3 * 4;
+\end{verbatim}
+
+para comprobar que el árbol se construye como \texttt{(2 * 3) * 4}.
+
+\subsection*{Precedencia de operadores}
+
+Para comprobar que los operadores con mayor precedencia se procesan primero, se utilizó:
+
+\begin{verbatim}
+int x = 2 + 3 * 4 - 5;
+\end{verbatim}
+
+El árbol esperado es:
+
+\begin{verbatim}
+Subtract
+Add
+Integer(2)
+Multiply
+Integer(3)
+Integer(4)
+Integer(5)
+\end{verbatim}
+
+Esto representa la expresión \texttt{((2 + (3 * 4)) - 5)}, demostrando que la multiplicación tiene mayor precedencia que la suma y la resta.
+
+\subsection*{Operadores unarios}
+
+También se verificó el manejo de operadores unarios mediante:
+
+\begin{verbatim}
+int x = ---5;
+\end{verbatim}
+
+El AST esperado contiene tres nodos \texttt{Negate} anidados:
+
+\begin{verbatim}
+Negate
+Negate
+Negate
+Integer(5)
+\end{verbatim}
+
+Esta prueba permite comprobar que el parser puede manejar operadores unarios consecutivos y construir correctamente su estructura recursiva.
+
+\subsection*{Paréntesis anidados}
+
+Para comprobar que los paréntesis modifican correctamente la estructura de la expresión, se utilizó:
+
+\begin{verbatim}
+int x = (((2 + 3) * 4) - 5);
+\end{verbatim}
+
+El AST generado debe conservar la estructura indicada por los paréntesis:
+
+\begin{verbatim}
+Subtract
+Multiply
+Add
+Integer(2)
+Integer(3)
+Integer(4)
+Integer(5)
+\end{verbatim}
+
+\subsection*{Precedencia de operadores booleanos}
+
+Se utilizó la expresión:
+
+\begin{verbatim}
+bool resultado = 10 > 5 && 3 < 8 || false;
+\end{verbatim}
+
+El árbol esperado es:
+
+\begin{verbatim}
+Or
+And
+Greater
+Integer(10)
+Integer(5)
+Less
+Integer(3)
+Integer(8)
+Boolean(false)
+\end{verbatim}
+
+Con esta prueba se verifica que las operaciones relacionales se encuentran dentro de la operación \texttt{And}, y que \texttt{And} tiene mayor precedencia que \texttt{Or}.
+
+\subsection*{Asociación del \texttt{else}}
+
+Para comprobar el comportamiento del \texttt{else} en condiciones anidadas se utilizó:
+
+\begin{verbatim}
+if (x > 0)
+if (x > 5)
+print(1);
+else
+print(2);
+\end{verbatim}
+
+El AST esperado asocia el \texttt{else} con el \texttt{if} más cercano. Esto permite verificar que el parser implementa correctamente la regla de asociación de la sentencia \texttt{else}.
+
+\subsection*{Ciclo \texttt{while} con una sola sentencia}
+
+También se probó un \texttt{while} cuyo cuerpo no está encerrado en un bloque:
+
+\begin{verbatim}
+while (x > 0)
+x = x - 1;
+\end{verbatim}
+
+El objetivo es verificar que el parser pueda utilizar una sentencia individual como cuerpo del ciclo y que dicha sentencia aparezca correctamente dentro del nodo \texttt{Body} del AST.
+
+\subsection*{Expresión compleja}
+
+Finalmente, se utilizó una expresión que combina operadores unarios, paréntesis, operadores aritméticos y división:
+
+\begin{verbatim}
+int x = -((2 + 3) * (4 - 1)) + 10 / 2;
+\end{verbatim}
+
+Esta prueba permite comprobar simultáneamente diferentes niveles de precedencia y la construcción recursiva del AST.
+
+\subsection*{Ejecución de las pruebas}
+Además de las pruebas públicas proporcionadas para la práctica, se diseñaron pruebas propias enfocadas específicamente en verificar la correcta construcción del Árbol de Sintaxis Abstracta (AST).
+
+Estas pruebas buscan comprobar aspectos que pueden presentar errores durante la implementación del parser, principalmente la precedencia y asociatividad de operadores, el manejo de operadores unarios, los paréntesis y la asociación de sentencias condicionales y ciclos.
+
+Las pruebas se organizaron de la siguiente manera:
+
+\begin{verbatim}
+tests/unit_tests/ast/
+├── inputs/
+│   ├── ut_ast_assoc_add.mc
+│   ├── ut_ast_assoc_mul.mc
+│   ├── ut_ast_mixed_operators.mc
+│   ├── ut_ast_multiple_unary.mc
+│   ├── ut_ast_nested_parentheses.mc
+│   ├── ut_ast_boolean_expression.mc
+│   ├── ut_ast_dangling_else.mc
+│   ├── ut_ast_single_statement_while.mc
+│   └── ut_ast_deep_expression.mc
+└── expected/
+├── ut_ast_assoc_add.out
+├── ut_ast_assoc_mul.out
+├── ut_ast_mixed_operators.out
+├── ut_ast_multiple_unary.out
+├── ut_ast_nested_parentheses.out
+├── ut_ast_boolean_expression.out
+├── ut_ast_dangling_else.out
+├── ut_ast_single_statement_while.out
+└── ut_ast_deep_expression.out
+\end{verbatim}
+
+Cada archivo de entrada contiene un programa MiniC y cada archivo \texttt{.out} contiene la representación esperada del AST generado por el compilador.
+
+\subsection*{Asociatividad de operadores}
+
+La primera prueba utiliza la expresión:
+
+\begin{verbatim}
+int x = 10 + 5 + 2;
+\end{verbatim}
+
+El resultado esperado es:
+
+\begin{verbatim}
+Add
+Add
+Integer(10)
+Integer(5)
+Integer(2)
+\end{verbatim}
+
+Esta prueba permite verificar que las operaciones de suma se construyen de forma asociativa hacia la izquierda, es decir, como \texttt{(10 + 5) + 2}.
+
+De manera similar, se probó la multiplicación mediante:
+
+\begin{verbatim}
+int x = 2 * 3 * 4;
+\end{verbatim}
+
+para comprobar que el árbol se construye como \texttt{(2 * 3) * 4}.
+
+\subsection*{Precedencia de operadores}
+
+Para comprobar que los operadores con mayor precedencia se procesan primero, se utilizó:
+
+\begin{verbatim}
+int x = 2 + 3 * 4 - 5;
+\end{verbatim}
+
+El árbol esperado es:
+
+\begin{verbatim}
+Subtract
+Add
+Integer(2)
+Multiply
+Integer(3)
+Integer(4)
+Integer(5)
+\end{verbatim}
+
+Esto representa la expresión \texttt{((2 + (3 * 4)) - 5)}, demostrando que la multiplicación tiene mayor precedencia que la suma y la resta.
+
+\subsection*{Operadores unarios}
+
+También se verificó el manejo de operadores unarios mediante:
+
+\begin{verbatim}
+int x = ---5;
+\end{verbatim}
+
+El AST esperado contiene tres nodos \texttt{Negate} anidados:
+
+\begin{verbatim}
+Negate
+Negate
+Negate
+Integer(5)
+\end{verbatim}
+
+Esta prueba permite comprobar que el parser puede manejar operadores unarios consecutivos y construir correctamente su estructura recursiva.
+
+\subsection*{Paréntesis anidados}
+
+Para comprobar que los paréntesis modifican correctamente la estructura de la expresión, se utilizó:
+
+\begin{verbatim}
+int x = (((2 + 3) * 4) - 5);
+\end{verbatim}
+
+El AST generado debe conservar la estructura indicada por los paréntesis:
+
+\begin{verbatim}
+Subtract
+Multiply
+Add
+Integer(2)
+Integer(3)
+Integer(4)
+Integer(5)
+\end{verbatim}
+
+\subsection*{Precedencia de operadores booleanos}
+
+Se utilizó la expresión:
+
+\begin{verbatim}
+bool resultado = 10 > 5 && 3 < 8 || false;
+\end{verbatim}
+
+El árbol esperado es:
+
+\begin{verbatim}
+Or
+And
+Greater
+Integer(10)
+Integer(5)
+Less
+Integer(3)
+Integer(8)
+Boolean(false)
+\end{verbatim}
+
+Con esta prueba se verifica que las operaciones relacionales se encuentran dentro de la operación \texttt{And}, y que \texttt{And} tiene mayor precedencia que \texttt{Or}.
+
+\subsection*{Asociación del \texttt{else}}
+
+Para comprobar el comportamiento del \texttt{else} en condiciones anidadas se utilizó:
+
+\begin{verbatim}
+if (x > 0)
+if (x > 5)
+print(1);
+else
+print(2);
+\end{verbatim}
+
+El AST esperado asocia el \texttt{else} con el \texttt{if} más cercano. Esto permite verificar que el parser implementa correctamente la regla de asociación de la sentencia \texttt{else}.
+
+\subsection*{Ciclo \texttt{while} con una sola sentencia}
+
+También se probó un \texttt{while} cuyo cuerpo no está encerrado en un bloque:
+
+\begin{verbatim}
+while (x > 0)
+x = x - 1;
+\end{verbatim}
+
+El objetivo es verificar que el parser pueda utilizar una sentencia individual como cuerpo del ciclo y que dicha sentencia aparezca correctamente dentro del nodo \texttt{Body} del AST.
+
+\subsection*{Expresión compleja}
+
+Finalmente, se utilizó una expresión que combina operadores unarios, paréntesis, operadores aritméticos y división:
+
+\begin{verbatim}
+int x = -((2 + 3) * (4 - 1)) + 10 / 2;
+\end{verbatim}
+
+Esta prueba permite comprobar simultáneamente diferentes niveles de precedencia y la construcción recursiva del AST.
+
+\subsection*{Ejecución de las pruebas}
+El sistema ejecuta cada archivo \texttt{.mc} y compara automáticamente la salida obtenida con el archivo \texttt{.out} correspondiente. Una prueba se considera correcta cuando ambas salidas coinciden.
+
+De esta manera, las pruebas propias permiten validar no solamente que los programas sean sintácticamente aceptados, sino que la \textbf{estructura del AST generado sea la esperada}, especialmente en casos donde la precedencia, asociatividad o anidamiento de las expresiones puede provocar errores.
+
+\begin{verbatim}
+❯ make test-unit-ast                                      
+==== unit-ast ====
+PASS: ut_ast_assoc_add
+PASS: ut_ast_assoc_mul
+PASS: ut_ast_boolean_expression
+PASS: ut_ast_dangling_else
+PASS: ut_ast_deep_expression
+PASS: ut_ast_mixed_operators
+PASS: ut_ast_multiple_unary
+PASS: ut_ast_nested_parentheses
+PASS: ut_ast_single_statement_while
+----
+Total: 9  Pass: 9  Fail: 0
+\end{verbatim}
 
 % ================================================================
-\section*{Problemas encontrados}
+\section*{Problemas encontrados}\label{sec:problemas}
 % ================================================================
 
+\subsection*{Copia de lexemas antes de avanzar}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Como \texttt{parser\_advance} destruye el token anterior, el nombre de una declaración o asignación debía
+copiarse antes de avanzar, y el inicializador se analiza después de haber consumido el identificador. De lo
+contrario, el nodo habría guardado un apuntador a memoria ya liberada.
 
+\subsection*{Límite por anidamiento profundo}
+
+Como en la Práctica 3, el descenso recursivo consume pila en proporción al anidamiento, y ahora también lo
+hacen \texttt{ast\_print} y \texttt{ast\_destroy}, que son recursivas sobre el árbol. Una entrada con una
+cantidad extrema de paréntesis o bloques anidados puede agotar la pila. No agregamos un límite de profundidad
+y lo dejamos registrado como limitación conocida. 
 
 % ================================================================
 \section*{Conclusiones}
 % ================================================================
+Esta práctica nos mostró que construir un AST sobre un parser descendente recursivo es, en gran parte, un
+cambio de lo que devuelve cada función. Como en la Práctica 3 ya teníamos una función por cada no terminal,
+los cambios se concentraron en \texttt{grammar.c} y en el nuevo módulo \texttt{ast}, mientras que el manejo
+de tokens de \texttt{parser.c} y el lexer prácticamente no se tocaron. Eso confirmó la decisión que tomamos al
+separar el flujo de tokens de la gramática.\\
 
+La precedencia y la asociatividad, que antes solo se observaban de forma indirecta, ahora quedan visibles en
+la forma del árbol. La precedencia sigue saliendo del orden en que se llaman los niveles de expresión, y la
+asociatividad izquierda del ciclo que usa el nodo recién creado como operando izquierdo de la siguiente
+iteración. Además, al reunir los seis niveles binarios en una sola función genérica con una tabla de
+operadores, eliminamos código repetido y redujimos la posibilidad de errores entre niveles.\\
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+La parte más delicada fue la propiedad de la memoria. Definir quién es dueño de cada nodo, de cada lista y de
+cada cadena nos obligó a pensar qué pasa en cada ruta de error: si un constructor falla, los hijos siguen
+siendo de quien llamó, y si una función recibe \texttt{NULL} debe liberar lo que ya construyó antes de
+propagarlo. También aprendimos que el token \texttt{previous} se destruye al avanzar, por lo que los nombres
+deben copiarse al AST antes de consumir el token. La convención de devolver \texttt{NULL} ante cualquier error
+y no entregar nunca un árbol parcial simplificó mucho el razonamiento sobre la recuperación, porque el
+resultado del análisis es o un árbol completo o ninguno.\\
 
+Por último, las pruebas nos recordaron que aceptar un programa no basta: hay que verificar la estructura que
+se construyó, como lo muestran los fallos que encontramos al integrar \texttt{main.c} y al ejecutar por
+error las pruebas de la práctica anterior. Como limitación, el diseño sigue siendo recursivo, así que el
+análisis, la impresión y la liberación consumen pila en proporción a la profundidad del anidamiento. El AST
+quedó con una representación correcta, modular e independiente de la impresión, lista para que el análisis
+semántico de la siguiente práctica la recorra y la enriquezca con tipos y símbolos.
 
 % ================================================================
 \section*{División del trabajo}
 % ================================================================
+Para esta práctica, el trabajo se repartió de la siguiente manera:\\
 
+El compañero \textit{Manuel Ianluck} se encargó de modificar el \texttt{Makefile}, de crear las pruebas
+propias y de participar en la discusión y el diseño de la implementación del AST, en particular la
+definición de los tipos de nodo y del contrato de propiedad de la memoria.\\
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Por su parte, la compañera \textit{María Fernanda} se encargó de la implementación concreta del AST y de la
+integración con el parser. \\
 
+La redacción del reporte, la revisión del código y las pruebas con valgrind las realizamos entre ambos.
 
 % ================================================================
 \section*{Uso de herramientas de Inteligencia Artificial}
 % ================================================================
 
+Para la realización de esta práctica se utilizó la herramienta de Inteligencia Artificial ChatGPT como apoyo en la redacción y revisión del reporte. Su uso se enfocó principalmente en mejorar la claridad de algunas explicaciones, corregir errores de redacción y reorganizar determinadas partes del texto para facilitar su comprensión.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bigskip
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+El contenido técnico del reporte, así como la implementación y las pruebas realizadas durante la práctica, fueron desarrollados a partir del trabajo realizado en el proyecto. La herramienta se utilizó únicamente como apoyo para presentar dicha información de una manera más clara y estructurada.
 
+Se utilizó el siguiente prompt:
 
-% ================================================================
+\begin{verbatim}
+Ayúdame a mejorar la redacción de este pdf.
+Mantén la información técnica y el significado original, pero
+haz que el texto sea más claro, formal y fácil de entender.
+No agregues información que no esté presente en el texto original.
+\end{verbatim}
+
 
 \begin{thebibliography}{99}
 \bibitem{ref1}
-  ppreference.com. (n.d.). C language. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+  cppreference.com. (n.d.). C language. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
 
 \bibitem{ref2}
-  ppreference.com. (n.d.). C11. Disponible en \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+  cppreference.com. (n.d.). C11. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+
+\bibitem{ref3}
+  Free Software Foundation. (n.d.). GNU make. Disponible en
+  \textcolor{links}{\uline{\url{https://www.gnu.org/software/make/manual/make.html}}}
 \end{thebibliography}
 
 \end{document}
