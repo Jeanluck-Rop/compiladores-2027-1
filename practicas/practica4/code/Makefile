@@ -117,7 +117,7 @@ test-p4: $(TARGET)
 	@grep -q '^Fallidas: 0$$' $(BUILD_DIR)/public-p4.log
 
 ## ---------- Pruebas propias ----------
-test-unit: test-unit-lexer test-unit-parser
+test-unit: test-unit-lexer test-unit-parser test-unit-ast
 
 ## Casos propios del lexer (P1 y P2)
 test-unit-lexer: $(TARGET)

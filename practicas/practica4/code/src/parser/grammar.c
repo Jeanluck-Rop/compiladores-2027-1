@@ -36,7 +36,7 @@ static ASTNode *parse_multiplicative_expression(Parser *parser);
 static ASTNode *parse_unary_expression(Parser *parser);
 static ASTNode *parse_primary(Parser *parser);
 
-/* Copiamos una cadena: el AST no puede apuntar a lexemas de tokens */
+/* Copiamos una cadena, el AST no puede apuntar a lexemas de tokens */
 static char *
 copy_string(const char *s)
 {
@@ -48,7 +48,7 @@ copy_string(const char *s)
     return copy;
 }
  
-/* Falla de memoria al construir un nodo: detiene el analisis */
+/* Fallo de memoria al construir un nodo, detenemos el analisis */
 static ASTNode *
 fail_memory(Parser *parser)
 {
@@ -72,7 +72,9 @@ current_column(const Parser *parser)
 
 /* Agregamos una sentencia a la lista; si falla, la liberamos */
 static int
-append_statement(Parser *parser, ASTNodeList *list, ASTNode *stmt)
+append_statement(Parser *parser,
+                 ASTNodeList *list,
+                 ASTNode *stmt)
 {
     if (ast_node_list_append(list, stmt))
         return 1;
@@ -82,7 +84,7 @@ append_statement(Parser *parser, ASTNodeList *list, ASTNode *stmt)
 }
 
 /* Elegimos la produccion de la sentencia segun el token de anticipacion y sincronizamos si hubo error */
-static ASTNode *
+static ASTNode*
 parse_statement(Parser *parser)
 {
     ASTNode *node = NULL;
@@ -122,7 +124,7 @@ parse_statement(Parser *parser)
 }
 
 /* Reconocemos una declaracion: tipo, identificador, inicializacion opcional y ';' */
-static ASTNode *
+static ASTNode*
 parse_declaration(Parser *parser)
 {
     ASTDeclaredType type;
@@ -179,7 +181,7 @@ parse_declaration(Parser *parser)
 }
 
 /* Reconocemos una asignacion: identificador, '=', expresion y ';' */
-static ASTNode *
+static ASTNode*
 parse_assignment(Parser *parser)
 {
     ASTNode *value;
@@ -220,7 +222,7 @@ parse_assignment(Parser *parser)
 }
 
 /* Reconocemos una impresion: print, expresion entre parentesis y ';' */
-static ASTNode *
+static ASTNode*
 parse_print_statement(Parser *parser)
 {
     ASTNode *expr = NULL;
@@ -254,7 +256,7 @@ parse_print_statement(Parser *parser)
 }
 
 /* Reconocemos un if con else opcional, que se asocia con el if mas cercano */
-static ASTNode *
+static ASTNode*
 parse_if_statement(Parser *parser)
 {
     ASTNode *condition;
@@ -305,7 +307,7 @@ parse_if_statement(Parser *parser)
 }
 
 /* Reconocemos un ciclo while: condicion entre parentesis y una sentencia como cuerpo */
-static ASTNode *
+static ASTNode*
 parse_while_statement(Parser *parser)
 {
     ASTNode *condition;
@@ -344,7 +346,7 @@ parse_while_statement(Parser *parser)
 }
 
 /* Reconocemos un bloque: sentencias entre llaves hasta encontrar '}' */
-static ASTNode *
+static ASTNode*
 parse_block(Parser *parser)
 {
     ASTNodeList list;
@@ -391,7 +393,7 @@ parse_block(Parser *parser)
  *   level ::= next ( (op1 | op2 | ...) next )*
  * El nodo se posiciona en el token del operador.
  */
-static ASTNode *
+static ASTNode*
 parse_binary_level(Parser *parser,
                    ParseFn next,
                    const BinaryOpEntry *ops,
@@ -440,14 +442,14 @@ parse_binary_level(Parser *parser,
 }
 
 /* Punto de entrada de las expresiones, empezando por el nivel de menor precedencia */
-static ASTNode *
+static ASTNode*
 parse_expression(Parser *parser)
 {
     return parse_or_expression(parser);
 }
 
 /* Reconocemos disyunciones '||', asociativas por la izquierda */
-static ASTNode *
+static ASTNode*
 parse_or_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = { { OR, OP_OR } };
@@ -457,7 +459,7 @@ parse_or_expression(Parser *parser)
 }
 
 /* Reconocemos conjunciones '&&', asociativas por la izquierda */
-static ASTNode *
+static ASTNode*
 parse_and_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = { { AND, OP_AND } };
@@ -467,7 +469,7 @@ parse_and_expression(Parser *parser)
 }
 
 /* Reconocemos comparaciones de igualdad '==' y '!=' */
-static ASTNode *
+static ASTNode*
 parse_equality_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = {
@@ -480,7 +482,7 @@ parse_equality_expression(Parser *parser)
 }
 
 /* Reconocemos operadores relacionales '<', '<=', '>' y '>=' */
-static ASTNode *
+static ASTNode*
 parse_comparison_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = {
@@ -495,7 +497,7 @@ parse_comparison_expression(Parser *parser)
 }
 
 /* Reconocemos sumas y restas '+' y '-' */
-static ASTNode *
+static ASTNode*
 parse_additive_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = {
@@ -508,7 +510,7 @@ parse_additive_expression(Parser *parser)
 }
 
 /* Reconocemos multiplicaciones y divisiones '*' y '/' */
-static ASTNode *
+static ASTNode*
 parse_multiplicative_expression(Parser *parser)
 {
     static const BinaryOpEntry ops[] = {
@@ -521,7 +523,7 @@ parse_multiplicative_expression(Parser *parser)
 }
 
 /* Reconocemos la negacion unaria '-', asociativa por la derecha mediante recursion */
-static ASTNode *
+static ASTNode*
 parse_unary_expression(Parser *parser)
 {
     ASTNode *operand;
@@ -548,7 +550,7 @@ parse_unary_expression(Parser *parser)
 }
 
 /* Reconocemos literales, identificadores o una expresion entre parentesis */
-static ASTNode *
+static ASTNode*
 parse_primary(Parser *parser)
 {
     ASTNode *node = NULL;
@@ -601,12 +603,13 @@ parse_primary(Parser *parser)
 
 }
 
-/* Reconocemos el programa completo y verificamos que termine en TOKEN_EOF */
-/* program ::= statement* TOKEN_EOF
+/*
+ * Reconocemos el programa completo y verificamos que termine en TOKEN_EOF
+ * program ::= statement* TOKEN_EOF
  * Devuelve la raiz, o NULL si hubo cualquier error lexico, sintactico
- * o interno (en ese caso no queda ningun nodo sin liberar). */
-
-ASTNode *
+ * o interno (en ese caso no queda ningun nodo sin liberar).
+ */
+ASTNode*
 parse_program(Parser *parser)
 {
     ASTNodeList list;

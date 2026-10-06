@@ -66,20 +66,20 @@ Practica03_Equipo14/
 
 ### Módulos implementados
     
-| Archivo o módulo                   | Responsabilidad                                                                                          |
-|------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `Makefile`                         | Compilación y ejecución de las pruebas públicas y propias.                                               |
-| `src/main.c`                       | Valida argumentos, abre el archivo, coordina lexer y parser, informa el resultado y el código de salida. |
-| `src/lexer/token.c`                | Construcción, impresión y liberación de tokens.                                                          |
-| `src/lexer/keywords.c`             | Tabla de palabras reservadas y `lookup_keyword`.                                                         |
-| `src/lexer/buffer_manage.c`        | Buffer dinámico para lexemas de longitud arbitraria.                                                     |
-| `src/lexer/lexer.c`                | Interfaz incremental del lexer: entrega un token por llamada.                                            |
-| `src/parser/parser.c`              | Flujo de tokens: lookahead, avance, consumo, diagnósticos y sincronización.                              |
-| `src/parser/grammar.c`             | Una función por no terminal de la gramática de MiniC.                                                    |
-| `src/ast/ast.c`                    | Lista dinámica de nodos, constructores, impresión en formato canónico y liberación recursiva del AST.    |
-| `include/parser/parser.h`          | Interfaz pública del parser (la única que usa `main.c`).                                                 |
-| `include/parser/parser_internal.h` | Operaciones auxiliares compartidas entre `parser.c` y `grammar.c`.                                       |
-| `include/parser/grammar.h`         | Punto de entrada de la gramática (`parse_program`).                                                      |
+| Archivo o módulo                   | Responsabilidad                                                                                                       |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| `Makefile`                         | Compilación y ejecución de las pruebas públicas y propias.                                                            |
+| `src/main.c`                       | Valida argumentos, abre el archivo, coordina lexer y parser, informa el resultado y el código de salida.              |
+| `src/lexer/token.c`                | Construcción, impresión y liberación de tokens.                                                                       |
+| `src/lexer/keywords.c`             | Tabla de palabras reservadas y `lookup_keyword`.                                                                      |
+| `src/lexer/buffer_manage.c`        | Buffer dinámico para lexemas de longitud arbitraria.                                                                  |
+| `src/lexer/lexer.c`                | Interfaz incremental del lexer: entrega un token por llamada.                                                         |
+| `src/parser/parser.c`              | Flujo de tokens: lookahead, avance, consumo, diagnósticos y sincronización.                                           |
+| `src/parser/grammar.c`             | Una función por no terminal de la gramática de MiniC.                                                                 |
+| `src/ast/ast.c`                    | Lista dinámica de nodos, constructores, impresión en formato canónico y liberación recursiva del AST.                 |
+| `include/parser/parser.h`          | Interfaz pública del parser (la única que usa `main.c`).                                                              |
+| `include/parser/parser_internal.h` | Operaciones auxiliares compartidas entre `parser.c` y `grammar.c`.                                                    |
+| `include/parser/grammar.h`         | Punto de entrada de la gramática (`parse_program`).                                                                   |
 | `include/ast/ast.h`                | Tipos de nodo, operadores, estructura `ASTNode`, `ASTNodeList` y prototipos de constructores, impresión y liberación. |
 ## Requisitos
 
@@ -188,7 +188,8 @@ Más detalles sobre diseño e implementación en el reporte de la práctica.
 
 - `tests/public/p1/` y `tests/public/p2/`: pruebas públicas de las Prácticas 1 y 2, ejecutadas con `-t`
   (`make test-p1`, `make test-p2`).
-- `tests/public/p3/`: pruebas públicas de la Práctica 3, ejecutadas con su propio script
+- `tests/public/p3/`: pruebas públicas de la Práctica 3, ejecutadas con su propio script (YA NO FUNCIONAN EN 
+ESTA IMPLEMENTACION)
   `run_public_tests.sh` (`make test-p3`).
 - `tests/public/p4/`: pruebas públicas de la Práctica 4, ejecutadas con su propio script
   `run_public_tests.sh` (`make test-p4`).
@@ -217,15 +218,5 @@ Más detalles de cada caso en la sección "Resultados y pruebas" del reporte.
 
 ## Notas de ejecución
 
-- En modo normal, `stdout` solo contiene el resultado general del análisis; todos los diagnósticos van a
-  `stderr`.
-- Como los archivos de prueba están en rutas como `tests/public/p3/inputs/` o
-  `tests/unit_tests/parser/inputs/`, hay que indicar la ruta completa al ejecutar manualmente, por ejemplo:
-```
-./minic tests/public/p3/inputs/p08_complete_program.mc
-```
-
-- Las salidas de las pruebas se guardan en `build/<suite>/` (`public-p1`, `public-p2`, `unit-lexer`,
-  `unit-parser`, `args`) como `<caso>.out`, `<caso>.err` y `<caso>.code`; la salida del script de P3 se
-  guarda en `build/public-p3.log`.
-- Requiere `gcc` con soporte para C11 (`-std=c11`); se compila con `-Wall -Wextra -Wpedantic`.
+- Las pruebas de la practica anterior, debido a la nuestra estructura del código ya no son de utilidad ni aceptan
+el nuevo programa.

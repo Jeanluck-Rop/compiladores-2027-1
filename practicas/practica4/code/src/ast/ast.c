@@ -5,12 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 
- * Crea una copia independiente de una cadena.
- * El AST mantiene su propia copia de los nombres y lexemas para
- * que no dependa de la memoria utilizada por el parser
- */
-static char *
+/* Creamos una copia independiente de una cadena */
+static char*
 copy_string(const char *s)
 {
     size_t n;
@@ -26,13 +22,11 @@ copy_string(const char *s)
     return copy;
 }
 
-/*
- * Reserva e inicializa un nodo del AST.
- * calloc inicializa la estructura en cero, después se almacenan
- * el tipo de nodo y su posición dentro del código fuente
- */
-static ASTNode *
-alloc_node(ASTNodeType type, int line, int column)
+/* Reservamos memoria de un nodo del AST */
+static ASTNode*
+alloc_node(ASTNodeType type,
+           int line,
+           int column)
 {
     ASTNode *node = calloc(1, sizeof(*node));
 
@@ -44,11 +38,7 @@ alloc_node(ASTNodeType type, int line, int column)
     return node;
 }
 
-/*
- * Reserva e inicializa un nodo del AST.
- * calloc inicializa la estructura en cero, después se almacenan
- * el tipo de nodo y su posición dentro del código fuente
- */
+/* Inicializamos un nodo del AST */
 void
 ast_node_list_init(ASTNodeList *list)
 {
@@ -60,13 +50,10 @@ ast_node_list_init(ASTNodeList *list)
     list->capacity = 0;
 }
 
-/*
- * Agrega un nodo al final de la lista.
- * Cuando la capacidad actual se alcanza, se duplica el espacio
- * reservado para reducir la cantidad de realocaciones
- */
+/* Agregamos un nodo al final de la lista */
 int
-ast_node_list_append(ASTNodeList *list, ASTNode *node)
+ast_node_list_append(ASTNodeList *list,
+                     ASTNode *node)
 {
     if (list == NULL || node == NULL)
         return 0;
@@ -90,7 +77,7 @@ ast_node_list_append(ASTNodeList *list, ASTNode *node)
 
 /*
  * Libera todos los nodos almacenados en la lista y posteriormente
- * libera el arreglo que contiene sus punteros
+ * libera el arreglo que contiene sus apuntadores
  */
 void
 ast_node_list_destroy(ASTNodeList *list)
@@ -107,11 +94,15 @@ ast_node_list_destroy(ASTNodeList *list)
     list->capacity = 0;
 }
 
-/* Constructores
- * Exito: el nodo adquiere los hijos / la lista.
- * Fallo (NULL): los hijos / la lista siguen siendo del llamador.*/
+/*
+ * Constructores
+ * Exito: el nodo adquiere los hijos / la lista
+ * Fallo: los hijos / la lista siguen siendo de quien llama
+ */
 ASTNode *
-ast_create_program(ASTNodeList statements, int line, int column)
+ast_create_program(ASTNodeList statements,
+                   int line,
+                   int column)
 {
     ASTNode *node = alloc_node(AST_PROGRAM, line, column);
 
@@ -121,11 +112,11 @@ ast_create_program(ASTNodeList statements, int line, int column)
     return node;
 }
 
-/*
- * Crea un nodo que representa un bloque de sentencias
- */
-ASTNode *
-ast_create_block(ASTNodeList statements, int line, int column)
+/* Crea un nodo que representa un bloque de sentencias */
+ASTNode*
+ast_create_block(ASTNodeList statements,
+                 int line,
+                 int column)
 {
     ASTNode *node = alloc_node(AST_BLOCK, line, column);
 
@@ -135,14 +126,13 @@ ast_create_block(ASTNodeList statements, int line, int column)
     return node;
 }
 
-/*
- * Crea un nodo que representa una declaración de variable
- */
-ASTNode *
+/* Creamos un nodo que representa una declaracion de variable */
+ASTNode*
 ast_create_variable_declaration(ASTDeclaredType declared_type,
                                 const char *name,
                                 ASTNode *initializer,
-                                int line, int column)
+                                int line,
+                                int column)
 {
     ASTNode *node;
     char *copy = copy_string(name);
@@ -160,12 +150,12 @@ ast_create_variable_declaration(ASTDeclaredType declared_type,
     return node;
 }
 
-/*
- * Crea un nodo que representa una asignación
- */
-ASTNode *
-ast_create_assignment(const char *name, ASTNode *value,
-                      int line, int column)
+/* Creamos un nodo que representa una asignacion */
+ASTNode*
+ast_create_assignment(const char *name,
+                      ASTNode *value,
+                      int line,
+                      int column)
 {
     ASTNode *node;
     char *copy = copy_string(name);
@@ -182,10 +172,8 @@ ast_create_assignment(const char *name, ASTNode *value,
     return node;
 }
 
-/*
- * Crea un nodo que representa una sentencia de impresión
- */
-ASTNode *
+/* Creamos un nodo que representa un print */
+ASTNode*
 ast_create_print(ASTNode *expression, int line, int column)
 {
     ASTNode *node = alloc_node(AST_PRINT, line, column);
@@ -196,12 +184,13 @@ ast_create_print(ASTNode *expression, int line, int column)
     return node;
 }
 
-/*
- * Crea un nodo que representa una sentencia condicional
- */
-ASTNode *
-ast_create_if(ASTNode *condition, ASTNode *then_branch,
-              ASTNode *else_branch, int line, int column)
+/* Creamos un nodo que representa una condicional */
+ASTNode*
+ast_create_if(ASTNode *condition,
+              ASTNode *then_branch,
+              ASTNode *else_branch,
+              int line,
+              int column)
 {
     ASTNode *node = alloc_node(AST_IF, line, column);
 
@@ -213,9 +202,7 @@ ast_create_if(ASTNode *condition, ASTNode *then_branch,
     return node;
 }
 
-/*
- * Crea un nodo que representa un ciclo while
- */
+/* Creamos un nodo que representa un while */
 ASTNode *
 ast_create_while(ASTNode *condition, ASTNode *body, int line, int column)
 {
@@ -229,14 +216,15 @@ ast_create_while(ASTNode *condition, ASTNode *body, int line, int column)
 }
 
 /*
- * Crea una expresión binaria y almacena el operador junto con
- * sus dos operandos: izquierdo y derecho.
- * el nodo contiene el operador ADD, el nodo de 'a' como hijo
- * izquierdo y el nodo de 'b' como hijo derecho.
+ * Creamos una expresion binaria y almacenamos el operador
+ * junto con sus dos operandos izq y der.
  */
-ASTNode *
-ast_create_binary(BinaryOperator operator, ASTNode *left, ASTNode *right,
-                  int line, int column)
+ASTNode*
+ast_create_binary(BinaryOperator operator,
+                  ASTNode *left,
+                  ASTNode *right,
+                  int line,
+                  int column)
 {
     ASTNode *node = alloc_node(AST_BINARY_EXPRESSION, line, column);
 
@@ -248,14 +236,12 @@ ast_create_binary(BinaryOperator operator, ASTNode *left, ASTNode *right,
     return node;
 }
 
-/*
- * Crea una expresión unaria.
- * El nodo almacena el operador y un único operando.
- * se representa mediante un nodo Negate cuyo hijo es Integer(5).
- */
+/* Creamos una expresion unaria */
 ASTNode *
-ast_create_unary(UnaryOperator operator, ASTNode *operand,
-                 int line, int column)
+ast_create_unary(UnaryOperator operator,
+                 ASTNode *operand,
+                 int line,
+                 int column)
 {
     ASTNode *node = alloc_node(AST_UNARY_EXPRESSION, line, column);
 
@@ -266,11 +252,11 @@ ast_create_unary(UnaryOperator operator, ASTNode *operand,
     return node;
 }
 
-/*
- * Crea un nodo que representa un identificador
- */
-ASTNode *
-ast_create_identifier(const char *name, int line, int column)
+/* Creamos un nodo que representa un identificador */
+ASTNode*
+ast_create_identifier(const char *name,
+                      int line,
+                      int column)
 {
     ASTNode *node;
     char *copy = copy_string(name);
@@ -286,11 +272,11 @@ ast_create_identifier(const char *name, int line, int column)
     return node;
 }
 
-/*
- * Crea un nodo que representa un literal entero
- */
-ASTNode *
-ast_create_integer(const char *lexeme, int line, int column)
+/* Crea un nodo que representa un literal entero */
+ASTNode*
+ast_create_integer(const char *lexeme,
+                   int line,
+                   int column)
 {
     ASTNode *node;
     char *copy = copy_string(lexeme);
@@ -306,63 +292,77 @@ ast_create_integer(const char *lexeme, int line, int column)
     return node;
 }
 
-/*
- * Crea un nodo que representa un literal booleano.
- * El valor se normaliza a 1 (true) o 0 (false).
- */
-ASTNode *
-ast_create_boolean(int value, int line, int column)
+/* Creamos un nodo que representa un literal booleano */
+ASTNode*
+ast_create_boolean(int value,
+                   int line,
+                   int column)
 {
     ASTNode *node = alloc_node(AST_BOOLEAN_LITERAL, line, column);
-
     if (node == NULL)
         return NULL;
     node->data.boolean_literal.value = value ? 1 : 0;
     return node;
 }
 
-/*  Impresion (formato canonico)  */
-
+/* Imprimimos en formato canonico */
 static void
 indent(int depth)
 {
     int i;
-
     for (i = 0; i < depth * 2; i++)
         putchar(' ');
 }
 
+/* */
 static void
-print_label(int depth, const char *label)
+print_label(int depth,
+            const char *label)
 {
     indent(depth);
     puts(label);
 }
 
-static const char *
+/* */
+static const char*
 binary_operator_name(BinaryOperator op)
 {
     switch (op) {
-    case OP_ADD:           return "Add";
-    case OP_SUBTRACT:      return "Subtract";
-    case OP_MULTIPLY:      return "Multiply";
-    case OP_DIVIDE:        return "Divide";
-    case OP_LESS:          return "Less";
-    case OP_LESS_EQUAL:    return "LessEqual";
-    case OP_GREATER:       return "Greater";
-    case OP_GREATER_EQUAL: return "GreaterEqual";
-    case OP_EQUAL:         return "Equal";
-    case OP_NOT_EQUAL:     return "NotEqual";
-    case OP_AND:           return "And";
-    case OP_OR:            return "Or";
+    case OP_ADD:
+        return "Add";
+    case OP_SUBTRACT:
+        return "Subtract";
+    case OP_MULTIPLY:
+        return "Multiply";
+    case OP_DIVIDE:
+        return "Divide";
+    case OP_LESS:
+        return "Less";
+    case OP_LESS_EQUAL:
+        return "LessEqual";
+    case OP_GREATER:
+        return "Greater";
+    case OP_GREATER_EQUAL:
+        return "GreaterEqual";
+    case OP_EQUAL:
+        return "Equal";
+    case OP_NOT_EQUAL:
+        return "NotEqual";
+    case OP_AND:
+        return "And";
+    case OP_OR:
+        return "Or";
     }
     return "?";
 }
 
+/* */
 static void print_node(const ASTNode *node, int depth);
 
+/* */
 static void
-print_list(const ASTNodeList *list, int depth)
+print_list(const ASTNodeList *list,
+           int depth)
 {
     size_t i;
 
@@ -370,8 +370,10 @@ print_list(const ASTNodeList *list, int depth)
         print_node(list->items[i], depth);
 }
 
+/* */
 static void
-print_node(const ASTNode *node, int depth)
+print_node(const ASTNode *node,
+           int depth)
 {
     if (node == NULL)
         return;
@@ -462,7 +464,6 @@ ast_print(const ASTNode *node)
 }
 
 /* Liberacion */
-
 void
 ast_destroy(ASTNode *node)
 {

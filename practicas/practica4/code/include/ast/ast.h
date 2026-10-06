@@ -118,88 +118,19 @@ struct ASTNode {
 void ast_node_list_init(ASTNodeList *list);
 int ast_node_list_append(ASTNodeList *list, ASTNode *node);
 void ast_node_list_destroy(ASTNodeList *list);
-
-ASTNode *ast_create_program(
-    ASTNodeList statements,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_block(
-    ASTNodeList statements,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_variable_declaration(
-    ASTDeclaredType declared_type,
-    const char *name,
-    ASTNode *initializer,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_assignment(
-    const char *name,
-    ASTNode *value,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_print(
-    ASTNode *expression,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_if(
-    ASTNode *condition,
-    ASTNode *then_branch,
-    ASTNode *else_branch,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_while(
-    ASTNode *condition,
-    ASTNode *body,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_binary(
-    BinaryOperator operator,
-    ASTNode *left,
-    ASTNode *right,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_unary(
-    UnaryOperator operator,
-    ASTNode *operand,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_identifier(
-    const char *name,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_integer(
-    const char *lexeme,
-    int line,
-    int column
-);
-
-ASTNode *ast_create_boolean(
-    int value,
-    int line,
-    int column
-);
-
+ASTNode *ast_create_program(ASTNodeList statements, int line, int column);
+ASTNode *ast_create_block(ASTNodeList statements, int line, int column);
+ASTNode *ast_create_variable_declaration(ASTDeclaredType declared_type, const char *name,
+                                         ASTNode* initializer, int line, int column);
+ASTNode *ast_create_assignment(const char *name, ASTNode *value, int line, int column);
+ASTNode *ast_create_print(ASTNode *expression, int line, int column);
+ASTNode* ast_create_if(ASTNode *condition, ASTNode *then_branch, ASTNode *else_branch, int line, int column);
+ASTNode* ast_create_while(ASTNode *condition, ASTNode *body, int line, int column);
+ASTNode* ast_create_binary(BinaryOperator operator, ASTNode *left, ASTNode *right, int line, int column);
+ASTNode* ast_create_unary(UnaryOperator operator, ASTNode *operand, int line, int column);
+ASTNode* ast_create_identifier(const char *name, int line, int column);
+ASTNode* ast_create_integer(const char *lexeme, int line, int column);
+ASTNode* ast_create_boolean(int value, int line, int column);
 void ast_print(const ASTNode *node);
 void ast_destroy(ASTNode *node);
 
