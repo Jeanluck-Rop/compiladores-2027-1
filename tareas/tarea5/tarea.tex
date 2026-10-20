@@ -216,8 +216,8 @@
 
   \bigskip
   
-  \textbf{Paso 2. Cerrradura y AFD de ítems $\lrc$ (\texttt{goto})}\\
-  Una producción $\nt{A}\to\eps$ genera directamente el ítem completo $\nt{A}\to\bullet$, el punto ya está al
+  \textbf{Paso 2. Cerrradura y AFD de elementos $\lrc$ (\texttt{goto})}\\
+  Una producción $\nt{A}\to\eps$ genera directamente el elemento completo $\nt{A}\to\bullet$, el punto ya está al
   final, por lo que en el estado inicial hay dos reducciones posibles.\\
   \[
   \textbf{closure}\big(\{\nt{S'}\to\bullet\,\nt{S}\}\big)
@@ -266,7 +266,7 @@
                                                 & \nt{A}\to\bullet\,\} = \boxed{I_4}
   \end{aligned}
   \]
-  El ítem $\nt{A}\to\bullet$ viene de la cerradura, el punto quedó antes de \nt{A}.
+  El elemento $\nt{A}\to\bullet$ viene de la cerradura, el punto quedó antes de \nt{A}.
 
   \medskip
 
@@ -290,7 +290,8 @@
   \end{aligned}
   \]
 
-  \textbf{Transiciones:} el ítem $\nt{A}\to\bullet$ ya está completo, no avanza.
+  \textbf{Transiciones:}\\
+  El elemento $\nt{A}\to\bullet$ ya está completo, no avanza.
   \[
   X=\nt{A}:\ \texttt{goto}(I_4,\tx{A}) = \{\,\nt{S}\to\nt{A}\,\tk{a}\,\nt{A}\,\bullet\,\tk{b}\,\} = \boxed{I_5}
   \]
@@ -307,7 +308,7 @@
   \medskip
 
   \textbf{Estado:}\quad $I_6 = \{\,\nt{S}\to\nt{A}\,\tk{a}\,\nt{A}\,\tk{b}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
@@ -336,7 +337,7 @@
   \medskip
 
   \textbf{Estado:}\quad $I_9 = \{\,\nt{S}\to\nt{B}\,\tk{b}\,\nt{B}\,\tk{a}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.\\
+  Elemento completo, no tiene transiciones.\\
   
   \bigskip
   
@@ -350,7 +351,7 @@
   \item \textbf{goto}: si $\texttt{goto}(I_k,\tx{X}) = I_N$ con \nt{X} no terminal,
     entonces $\textbf{goto}\tk{[} k, \tx{X} \tk{]} = N$.
     
-  \item \textbf{reducir} ($r_j$): solo para ítems con el punto al final, $\nt{X}\to\alpha\,\bullet$,\
+  \item \textbf{reducir} ($r_j$): solo para elementos con el punto al final, $\nt{X}\to\alpha\,\bullet$,\
     donde $j$ es el número de la producción. En $\slr$ colocamos únicamente en las columnas de $\Follow{\tx{X}}$.
 
   \item \textbf{aceptar}: el estado que contiene $\nt{S'}\to\nt{S}\,\bullet$\ lleva \textit{aceptar} en la
@@ -380,7 +381,7 @@
   \bigskip
   
   \textbf{Paso 4. Conflicto}\\
-  En $I_0$ hay dos ítems completos: $\nt{A}\to\bullet$ y $\nt{B}\to\bullet$.\\
+  En $I_0$ hay dos elementos completos $\nt{A}\to\bullet$ y $\nt{B}\to\bullet$.\\
   En $\slr$, cada reducción se coloca en su $\textsc{Follow}$:
   \[
   \Follow{\tx{A}} \cap \Follow{\tx{B}} = \{\tk{a},\tk{b}\} \cap \{\tk{a},\tk{b}\}
@@ -506,7 +507,7 @@
   \]
   Además, $\Follow{\tx{S'}} = \{\tk{\$}\}$.\\
 
-  \textbf{Paso 2. Cerradura y AFD de ítems $\lrc$ (\texttt{goto})}\\[4pt]
+  \textbf{Paso 2. Cerradura y AFD de elementos $\lrc$ (\texttt{goto})}\\[4pt]
 
   \[
   \textbf{closure}\big(\{\nt{S'}\to\bullet\,\nt{S}\}\big)
@@ -569,17 +570,17 @@
   \medskip
 
   \textbf{Estado:}\quad $I_2 = \{\,\nt{S}\to\nt{A}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
   \textbf{Estado:}\quad $I_3 = \{\,\nt{A}\to\tk{a}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
   \textbf{Estado:}\quad $I_4 = \{\,\nt{S}\to\nt{S}\,\nt{A}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.\\
+  Elemento completo, no tiene transiciones.\\
 
   \textbf{Paso 3. Tabla $\slr$}\\
   Reglas para llenarla:
@@ -590,8 +591,8 @@
   \item \textbf{goto}: si $\texttt{goto}(I_k, \tx{X}) = I_N$ con \nt{X} no terminal,
     entonces $\textbf{goto}\tk{[} k, \tx{X} \tk{]} = N$.
     
-  \item \textbf{reducir} ($r_j$): solo para ítems con el punto al final, $\nt{X}\to\alpha\,\bullet$, donde $j$ es
-    el número de la producción. En $\slr$ se coloca únicamente en las columnas de $\Follow{\tx{X}}$.
+  \item \textbf{reducir} ($r_j$): solo para elementos con el punto al final, $\nt{X}\to\alpha\,\bullet$, donde
+    $j$ es el número de la producción. En $\slr$ se coloca únicamente en las columnas de $\Follow{\tx{X}}$.
     
   \item \textbf{aceptar}: el estado que contiene $\nt{S'}\to\nt{S}\,\bullet$ lleva \textit{aceptar} en la
     columna \tk{\$}.
@@ -612,10 +613,10 @@
   \]
 
   \textbf{Paso 4. Verificación de conflictos}\\
-  Solo $I_1$ mezcla un ítem completo con un ítem de desplazamiento, $\nt{S'}\to\nt{S}\,\bullet$ se acepta en
-  \tk{\$} y $\nt{A}\to\bullet\,\tk{a}$ desplaza con \tk{a}, como son columnas distintas, así que no hay
+  Solo $I_1$ mezcla un elemento completo con un elemento de desplazamiento, $\nt{S'}\to\nt{S}\,\bullet$ se
+  acepta en \tk{\$} y $\nt{A}\to\bullet\,\tk{a}$ desplaza con \tk{a}, como son columnas distintas, así que no hay
   conflicto.\\
-  $I_2$, $I_3$ e $I_4$ tienen un solo ítem completo y ningún desplazamiento, ninguna celda tiene más de una
+  $I_2$, $I_3$ e $I_4$ tienen un solo elemento completo y ningún desplazamiento, ninguna celda tiene más de una
   acción.\\
 
   De este modo \textbf{La gramática es $\slr$}.\\
@@ -664,9 +665,9 @@
   \bigskip
   %%%%%%%%%%%%%%%%%%%%%%%%%%
   
-    \textbf{\Large Gramática 1}\\
+  \textbf{\Large Gramática 1}\\
 
-  \textbf{\large a. AFD de ítems $\lrc$}\\
+  \textbf{\large a. AFD de elementos $\lrc$}\\
 
   \textbf{Paso 1. Gramática aumentada y reglas de producción}
   \[
@@ -679,14 +680,15 @@
   \end{aligned}
   \]
 
-  \textbf{Paso 2. Cerradura y \texttt{goto}: AFD de ítems $\lrc$}\\
-  Cada estado se obtiene con $\texttt{goto}(I_k, X)$: se avanza el punto sobre $X$ en los ítems que lo tienen
-  justo antes y al resultado se le aplica la cerradura (si el punto queda antes de un no terminal, se agregan
-  sus producciones con el punto al inicio).\\
-
-  \textbf{Cerradura}$\big(\{\nt{E'}\to\bullet\,\nt{E}\}\big)$: el punto está antes de \nt{E}, se agregan
-  $\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)}$ y $\nt{E}\to\bullet\,\tk{a}$. Ambas empiezan con un terminal,
-  así que la cerradura termina.
+  \textbf{Paso 2. Cerradura y AFD de elementos $\lrc$ (\texttt{goto})}\\
+  Cada estado se obtiene con $\texttt{goto}(I_k, \tx{X})$, avanzamos el punto sobre $X$ en los elementos que lo
+  tienen justo antes y al resultado le aplicamos la cerradura (si el punto queda antes de un no terminal,
+  entonces agregamos sus producciones con el punto al inicio).\\
+  \[
+  \textbf{closure}\big(\{\nt{E'}\to\bullet\,\nt{E}\}\big)
+  \]
+  punto está antes de \nt{E}, agregamos $\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)}$ y $\nt{E}\to\bullet\,\tk{a}$,
+  ambas empiezan con un terminal, así que la cerradura termina.
 
   \medskip
 
@@ -702,43 +704,55 @@
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{E}:\ \texttt{goto}(I_0,\nt{E}) &= \{\,\nt{E'}\to\nt{E}\,\bullet\,\} = \boxed{I_1}\\[6pt]
+    X=\nt{E}:\ \texttt{goto}(I_0,\tx{E}) = \{\, & \nt{E'}\to\nt{E}\,\bullet\,\} = \boxed{I_1}\\[8pt]
     X=\tk{(}:\ \texttt{goto}(I_0,\tk{(}) = \{\, & \nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\\
-                                              & \nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\\
-                                              & \nt{L}\to\bullet\,\nt{E},\\
-                                              & \nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\\
-                                              & \nt{E}\to\bullet\,\tk{a}\,\} = \boxed{I_2}\\[6pt]
+                                                & \nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\\
+                                                & \nt{L}\to\bullet\,\nt{E},\\
+                                                & \nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\\
+                                                & \nt{E}\to\bullet\,\tk{a}\,\} = \boxed{I_2}\\[8pt]
     X=\tk{a}:\ \texttt{goto}(I_0,\tk{a}) &= \{\,\nt{E}\to\tk{a}\,\bullet\,\} = \boxed{I_3}
   \end{aligned}
   \]
-  En $I_2$, tras mover el punto sobre \tk{(} queda antes de \nt{L}, así que se agregan las producciones de \nt{L};
-  en $\nt{L}\to\bullet\,\nt{E}$ el punto queda antes de \nt{E}, y se agregan las de \nt{E}.
+  
+  En $I_2$, tras mover el punto sobre \tk{(} queda antes de \nt{L}, así que agregamos las producciones de \nt{L};
+  en $\nt{L}\to\bullet\,\nt{E}$ el punto queda antes de \nt{E}, y agregamos las de \nt{E}.
 
   \medskip
 
   \textbf{Estado:}\quad $I_1 = \{\,\nt{E'}\to\nt{E}\,\bullet\,\}$\\
-  Es el estado de aceptación. No tiene transiciones.
+  Es el estado de aceptación, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_2$ (el calculado arriba)
-
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_2 = \{\, & \nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\\
+               & \nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\\
+               & \nt{L}\to\bullet\,\nt{E},\\
+               & \nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\\
+               & \nt{E}\to\bullet\,\tk{a}\,\}
+  \end{aligned}
+  \]
+  
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{L}:\ \texttt{goto}(I_2,\nt{L}) = \{\, & \nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\\
+    X=\nt{L}:\ \texttt{goto}(I_2,\tx{L}) = \{\, & \nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\\
                                               & \nt{L}\to\nt{L}\,\bullet\,\tk{,}\,\nt{E}\,\} = \boxed{I_4}\\[6pt]
-    X=\nt{E}:\ \texttt{goto}(I_2,\nt{E}) &= \{\,\nt{L}\to\nt{E}\,\bullet\,\} = \boxed{I_5}\\[3pt]
+    X=\nt{E}:\ \texttt{goto}(I_2,\tx{E}) &= \{\,\nt{L}\to\nt{E}\,\bullet\,\} = \boxed{I_5}\\[3pt]
     X=\tk{(}:\ \texttt{goto}(I_2,\tk{(}) &= I_2\\[3pt]
     X=\tk{a}:\ \texttt{goto}(I_2,\tk{a}) &= I_3
   \end{aligned}
   \]
-  Con \tk{(} se obtiene el mismo conjunto de ítems que $I_2$, por eso regresa a $I_2$.
+  Con \tk{(} se obtiene el mismo conjunto de elementos que $I_2$, por eso regresa a $I_2$. Mientras que con
+  \tk{a} se va a $I_3$, pues es la misma siutación $\nt{E}\to\bullet\tk{a}$; a diferencia de con $\nt{E}$ que va
+  a $I_5$ que proviene de $\nt{L}\to\bullet\tk{E}$.
 
   \medskip
 
   \textbf{Estado:}\quad $I_3 = \{\,\nt{E}\to\tk{a}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
@@ -763,21 +777,28 @@
   \medskip
 
   \textbf{Estado:}\quad $I_5 = \{\,\nt{L}\to\nt{E}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
   \textbf{Estado:}\quad $I_6 = \{\,\nt{E}\to\tk{(}\,\nt{L}\,\tk{)}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_7$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_7 = \{\, & \nt{L}\to\nt{L}\,\tk{,}\,\bullet\,\nt{E},\\
+               & \nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\\
+               & \nt{E}\to\bullet\,\tk{a}\,\}
+  \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{E}:\ \texttt{goto}(I_7,\nt{E}) &= \{\,\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet\,\} = \boxed{I_8}\\[3pt]
+    X=\nt{E}:\ \texttt{goto}(I_7,\tx{E}) &= \{\,\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet\,\} = \boxed{I_8}\\[3pt]
     X=\tk{(}:\ \texttt{goto}(I_7,\tk{(}) &= I_2\\[3pt]
     X=\tk{a}:\ \texttt{goto}(I_7,\tk{a}) &= I_3
   \end{aligned}
@@ -786,9 +807,9 @@
   \medskip
 
   \textbf{Estado:}\quad $I_8 = \{\,\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.\\
+  Elemento completo, no tiene transiciones.\\
 
-  El AFD tiene 9 estados, $I_0,\ldots,I_8$.
+  Con esto concluimos que el AFD tiene nueve estados $I_0,\ldots,I_8$.
 
   \bigskip
 
@@ -800,45 +821,52 @@
   \textbf{Paso 2. \textsc{First}}\\
   $\nt{E}\to\tk{(}\,\nt{L}\,\tk{)}$ aporta \tk{(} y $\nt{E}\to\tk{a}$ aporta \tk{a}:
   \[
-  \First{\nt{E}} = \{\tk{(},\ \tk{a}\}
+  \First{\tx{E}} = \{\tk{(},\ \tk{a}\}
   \]
   Para \nt{L}, la alternativa $\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}$ empieza con \nt{L} misma (recursión por la
-  izquierda) y no agrega nada nuevo. La alternativa $\nt{L}\to\nt{E}$ aporta $\First{\nt{E}}$:
+  izquierda) y no agrega nada nuevo, la alternativa $\nt{L}\to\nt{E}$ aporta $\First{\tx{E}}$:
   \[
-  \First{\nt{L}} = \First{\nt{E}} = \{\tk{(},\ \tk{a}\}
+  \First{\tx{L}} = \First{\tx{E}} = \{\tk{(},\ \tk{a}\}
   \]
 
   \textbf{Paso 3. \textsc{Follow}}
   \begin{itemize}
   \item $\Follow{\tx{L}}$: en $\nt{E}\to\tk{(}\,\nt{L}\,\tk{)}$ le sigue \tk{)} y en
-    $\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}$ le sigue \tk{,}. En $\nt{L}\to\nt{E}$ no aparece al final.
+    $\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}$ le sigue \tk{,}\ , mientras que en $\nt{L}\to\nt{E}$ no aparece al final.
     \[
-    \Follow{\nt{L}} = \{\tk{)},\ \tk{,}\}
+    \Follow{\tx{L}} = \{\tk{)},\ \tk{,}\}
     \]
 
-  \item $\Follow{\tx{E}}$: es el símbolo inicial, así que aporta \tk{\$}. En $\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}$ y en
-    $\nt{L}\to\nt{E}$ aparece al final, así que hereda $\Follow{\nt{L}}$.
+  \item $\Follow{\tx{E}}$: es el símbolo inicial, así que aporta \tk{\$}. En $\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}$
+    y en $\nt{L}\to\nt{E}$ aparece al final, así que hereda $\Follow{\tx{L}}$.
     \[
-    \Follow{\nt{E}} = \{\tk{\$}\} \cup \Follow{\nt{L}} = \{\tk{\$},\ \tk{)},\ \tk{,}\}
+    \Follow{\tx{E}} = \{\tk{\$}\} \cup \Follow{\tx{L}} = \{\tk{\$},\ \tk{)},\ \tk{,}\}
     \]
   \end{itemize}
-  Además, $\Follow{\nt{E'}} = \{\tk{\$}\}$.\\
+  Además, $\Follow{\tx{E'}} = \{\tk{\$}\}$.\\
 
   \textbf{Paso 4. Tabla $\slr$}\\
   Reglas para llenarla:
   \begin{itemize}
-  \item \textbf{Desplazar} ($d_N$): solo viene de un \texttt{goto} con terminal. Si
-    $\texttt{goto}(I_k,x)=I_N$, entonces $\mathrm{ACCION}[k,x]=d_N$.
-  \item \textbf{GOTO}: si $\texttt{goto}(I_k,\nt{X})=I_N$ con \nt{X} no terminal, entonces $\mathrm{GOTO}[k,\nt{X}]=N$.
-  \item \textbf{Reducir} ($r_j$): solo para ítems con el punto al final, $\nt{X}\to\alpha\,\bullet$, donde $j$ es el
-    número de la producción. En $\slr$ se coloca únicamente en las columnas de $\Follow{\nt{X}}$.
-  \item \textbf{Aceptar}: el estado que contiene $\nt{E'}\to\nt{E}\,\bullet$ lleva \textit{aceptar} en la columna \tk{\$}.
+  \item \textbf{desplazar} ($d_N$): solo viene de un \texttt{goto} con terminal.
+    Si $\texttt{goto}(I_k,x)=I_N$, entonces $\textbf{accion}\tk{[} k, x \tk{]} = d_N$.
+    
+  \item \textbf{goto}: si $\texttt{goto}(I_k, \tx{X}) = I_N$ con \nt{X} no terminal, entonces
+    $\textbf{goto}\tk{[}k, \tx{X} \tk{]} = N$.
+    
+  \item \textbf{reducir} ($r_j$): solo para elementos con el punto al final, $\nt{X}\to\alpha\,\bullet$,
+    donde $j$ es el número de la producción. En $\slr$ lo colocamos únicamente en las columnas de
+    $\Follow{\tx{X}}$.
+    
+  \item \textbf{aceptar}: el estado que contiene $\nt{E'}\to\nt{E}\,\bullet$ lleva \textit{aceptar}
+    en la columna \tk{\$}.
   \end{itemize}
-  Las reducciones son: $I_3$ con la regla 2, $I_5$ con la 4, $I_6$ con la 1 e $I_8$ con la 3. Las de \nt{E}
+  
+  Las reducciones son $I_3$ con la regla 2, $I_5$ con la 4, $I_6$ con la 1 e $I_8$ con la 3. Las de \nt{E}
   (reglas 1 y 2) van en $\{\tk{\$},\tk{)},\tk{,}\}$ y las de \nt{L} (reglas 3 y 4) en $\{\tk{)},\tk{,}\}$.
   \[
   \begin{array}{c|c|c|c|c|c||c|c}
-    & \multicolumn{5}{c||}{\text{Acción}} & \multicolumn{2}{c}{\text{GOTO}} \\ \hline
+    & \multicolumn{5}{c||}{\textbf{acción}} & \multicolumn{2}{c}{\textbf{goto}} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{a} & \tk{,} & \tk{\$} & \nt{E} & \nt{L} \\ \hline
     0 & d2 &    & d3 &    &    & 1 &   \\ \hline
     1 &    &    &    &    & \text{aceptar} &   &   \\ \hline
@@ -853,17 +881,19 @@
   \]
 
   \textbf{Paso 5. Verificación de conflictos}\\
-  $I_4$ solo tiene ítems de desplazamiento y $I_3$, $I_5$, $I_6$, $I_8$ tienen un solo ítem completo cada uno.
-  Ninguna celda tiene más de una acción, así que la gramática es $\slr$.
+  $I_4$ solo tiene elementos de desplazamiento y $I_3$, $I_5$, $I_6$, $I_8$ tienen un solo elemento completo cada
+  uno.\\
 
-  \newpage
+  Ninguna celda tiene más de una acción y, por lo tanto, la gramática es $\slr$.
+
+  \bigskip
 
   \textbf{\large c. Pila y acciones del analizador $\slr$ para} \tk{(\,(a),\,a,\,(a,a)\,)}\\
 
-  En cada paso se mira el estado del tope de la pila y el siguiente símbolo de la entrada. En un
-  desplazamiento ($d_N$) se apila el símbolo y el estado $N$. En una reducción $r_j$ con
-  $\nt{X}\to\alpha$ se sacan $|\alpha|$ símbolos (con sus estados), y con el estado que queda en el tope se
-  apila \nt{X} y el estado $\mathrm{GOTO}[\text{tope},\nt{X}]$.
+  En cada paso miramos el estado del tope de la pila y el siguiente símbolo de la entrada. En un
+  desplazamiento ($d_N$) apilamos el símbolo y el estado $N$. En una reducción $r_j$ con $\nt{X}\to\alpha$
+  sacamos $|\alpha|$ símbolos (con sus estados), y con el estado que queda en el tope apilamos \nt{X} y el
+  estado \textbf{goto}\tk{[}tope, X\tk{]}.
   {\small
   \[
   \begin{array}{r l l l}
@@ -871,54 +901,55 @@
     1  & 0 & \tk{(\,(\,a\,)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & d2 \\
     2  & 0\,\tk{(}\,2 & \tk{(\,a\,)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & d2 \\
     3  & 0\,\tk{(}\,2\,\tk{(}\,2 & \tk{a\,)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & d3 \\
-    4  & 0\,\tk{(}\,2\,\tk{(}\,2\,\tk{a}\,3 & \tk{)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r2\ (\nt{E}\to\tk{a}),\ \mathrm{GOTO}[2,\nt{E}]=5 \\
-    5  & 0\,\tk{(}\,2\,\tk{(}\,2\,\nt{E}\,5 & \tk{)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r4\ (\nt{L}\to\nt{E}),\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    4  & 0\,\tk{(}\,2\,\tk{(}\,2\,\tk{a}\,3 & \tk{)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r2\ (\nt{E}\to\tk{a}),\ \bf{goto}\tk{[}2,\tx{E}\tk{]}=5 \\
+    5  & 0\,\tk{(}\,2\,\tk{(}\,2\,\nt{E}\,5 & \tk{)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r4\ (\nt{L}\to\nt{E}),\ \bf{goto}\tk{[}2,\tx{L}\tk{]}=4 \\
     6  & 0\,\tk{(}\,2\,\tk{(}\,2\,\nt{L}\,4 & \tk{)\,,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & d6 \\
-    7  & 0\,\tk{(}\,2\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r1\ (\nt{E}\to\tk{(}\nt{L}\tk{)}),\ \mathrm{GOTO}[2,\nt{E}]=5 \\
-    8  & 0\,\tk{(}\,2\,\nt{E}\,5 & \tk{,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r4,\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    7  & 0\,\tk{(}\,2\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r1\ (\nt{E}\to\tk{(}\nt{L}\tk{)}),\ \bf{goto}\tk{[}2,\tx{E}\tk{]}=5 \\
+    8  & 0\,\tk{(}\,2\,\nt{E}\,5 & \tk{,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & r4,\ \bf{goto}\tk{[}2,\tx{L}\tk{]}=4 \\
     9  & 0\,\tk{(}\,2\,\nt{L}\,4 & \tk{,\,a\,,\,(\,a\,,\,a\,)\,)\,\$} & d7 \\
     10 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7 & \tk{a\,,\,(\,a\,,\,a\,)\,)\,\$} & d3 \\
-    11 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\tk{a}\,3 & \tk{,\,(\,a\,,\,a\,)\,)\,\$} & r2,\ \mathrm{GOTO}[7,\nt{E}]=8 \\
-    12 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{,\,(\,a\,,\,a\,)\,)\,\$} & r3\ (\nt{L}\to\nt{L}\tk{,}\nt{E}),\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    11 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\tk{a}\,3 & \tk{,\,(\,a\,,\,a\,)\,)\,\$} & r2,\ \bf{goto}\tk{[}7,\tx{E}\tk{]}=8 \\
+    12 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{,\,(\,a\,,\,a\,)\,)\,\$} & r3\ (\nt{L}\to\nt{L}\tk{,}\nt{E}),\ \bf{goto}\tk{[}2,\tx{L}\tk{]}=4 \\
     13 & 0\,\tk{(}\,2\,\nt{L}\,4 & \tk{,\,(\,a\,,\,a\,)\,)\,\$} & d7 \\
     14 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7 & \tk{(\,a\,,\,a\,)\,)\,\$} & d2 \\
     15 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\tk{(}\,2 & \tk{a\,,\,a\,)\,)\,\$} & d3 \\
-    16 & \ldots\,7\,\tk{(}\,2\,\tk{a}\,3 & \tk{,\,a\,)\,)\,\$} & r2,\ \mathrm{GOTO}[2,\nt{E}]=5 \\
-    17 & \ldots\,7\,\tk{(}\,2\,\nt{E}\,5 & \tk{,\,a\,)\,)\,\$} & r4,\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    16 & \ldots\,7\,\tk{(}\,2\,\tk{a}\,3 & \tk{,\,a\,)\,)\,\$} & r2,\ \bf{goto}[2,\tx{E}\tk{]}=5 \\
+    17 & \ldots\,7\,\tk{(}\,2\,\nt{E}\,5 & \tk{,\,a\,)\,)\,\$} & r4,\ \bf{goto}[2,\tx{L}\tk{]}=4 \\
     18 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4 & \tk{,\,a\,)\,)\,\$} & d7 \\
     19 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7 & \tk{a\,)\,)\,\$} & d3 \\
-    20 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\tk{a}\,3 & \tk{)\,)\,\$} & r2,\ \mathrm{GOTO}[7,\nt{E}]=8 \\
-    21 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{)\,)\,\$} & r3,\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    20 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\tk{a}\,3 & \tk{)\,)\,\$} & r2,\ \bf{goto}\tk{[}7,\tx{E}\tk{]}=8 \\
+    21 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{)\,)\,\$} & r3,\ \bf{goto}\tk{[}2,\nt{L}\tk{]}=4 \\
     22 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4 & \tk{)\,)\,\$} & d6 \\
-    23 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{)\,\$} & r1,\ \mathrm{GOTO}[7,\nt{E}]=8 \\
-    24 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{)\,\$} & r3,\ \mathrm{GOTO}[2,\nt{L}]=4 \\
+    23 & \ldots\,7\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{)\,\$} & r1,\ \bf{goto}\tk{[}7,\tx{E}\tk{]}=8 \\
+    24 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7\,\nt{E}\,8 & \tk{)\,\$} & r3,\ \bf{goto}\tk{[}2,\tx{L}\tk{]}=4 \\
     25 & 0\,\tk{(}\,2\,\nt{L}\,4 & \tk{)\,\$} & d6 \\
-    26 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{\$} & r1,\ \mathrm{GOTO}[0,\nt{E}]=1 \\
+    26 & 0\,\tk{(}\,2\,\nt{L}\,4\,\tk{)}\,6 & \tk{\$} & r1,\ \bf{goto}\tk{[0},\tx{E}\tk{]}=1 \\
     27 & 0\,\nt{E}\,1 & \tk{\$} & \text{aceptar}
   \end{array}
   \]
   }
-  En las filas 16 a 23 los puntos suspensivos representan el prefijo
-  $0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7$ de la pila. La cadena es aceptada.
+  En las filas 16 a 23 los puntos suspensivos representan el prefijo $0\,\tk{(}\,2\,\nt{L}\,4\,\tk{,}\,7$
+  de la pila. Por lo que con esto mostramos, que la cadena es aceptada.
 
   \bigskip
 
   \textbf{\large d. ¿La gramática 1 es $\lrc$?}\\
 
-  Una gramática es $\lrc$ si ningún estado del AFD tiene un conflicto: desplazamiento/reducción (un ítem
-  completo junto con un ítem con un terminal después del punto) o reducción/reducción (dos ítems completos).
-  Se revisa cada estado:
+  Una gramática es $\lrc$ si ningún estado del AFD tiene un conflicto $d_N/r_J$ (un elemento completo junto con
+  un elemento con un terminal después del punto) o $r_J/r_{J'}$ (dos elementos completos).\\
+  Revisando cada estado:
   \begin{itemize}
-  \item $I_0$, $I_2$, $I_7$: solo ítems con el punto antes de un símbolo, sin ítems completos.
+  \item $I_0$, $I_2$, $I_7$: solo elementos con el punto antes de un símbolo, sin elementos completos.
   \item $I_1$: solo $\nt{E'}\to\nt{E}\,\bullet$, que es \textit{aceptar} en la columna \tk{\$}.
-  \item $I_4$: sus dos ítems tienen el punto antes de \tk{)} y antes de \tk{,}. Solo hay desplazamientos.
-  \item $I_3$, $I_5$, $I_6$, $I_8$: un único ítem completo cada uno.
+  \item $I_4$: sus dos elementos tienen el punto antes de \tk{)} y antes de \tk{,}. Solo hay desplazamientos.
+  \item $I_3$, $I_5$, $I_6$, $I_8$: un único elemento completo cada uno.
   \end{itemize}
+  
   No hay ningún conflicto, por lo tanto \textbf{la gramática 1 es $\lrc$}. En $\lrc$ una reducción se coloca en
-  \textbf{todas} las columnas de terminales (sin usar $\mathrm{FOLLOW}$):
+  \textbf{todas} las columnas de terminales (sin usar $\mathrm{FOLLOW}$), así:
   \[
   \begin{array}{c|c|c|c|c|c||c|c}
-    & \multicolumn{5}{c||}{\text{Acción}} & \multicolumn{2}{c}{\text{GOTO}} \\ \hline
+    & \multicolumn{5}{c||}{\textbf{acción}} & \multicolumn{2}{c}{\textbf{goto}} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{a} & \tk{,} & \tk{\$} & \nt{E} & \nt{L} \\ \hline
     0 & d2 &    & d3 &    &    & 1 &   \\ \hline
     1 &    &    &    &    & \text{aceptar} &   &   \\ \hline
@@ -939,7 +970,7 @@
 
   \textbf{\Large Gramática 2}\\
 
-    \textbf{\large a. AFD de ítems $\lrc$}\\
+    \textbf{\large a. AFD de elementos $\lrc$}\\
 
   \textbf{Paso 1. Gramática aumentada y reglas de producción}
   \[
@@ -950,11 +981,13 @@
   \end{aligned}
   \]
 
-  \textbf{Paso 2. Cerradura y \texttt{goto}: AFD de ítems $\lrc$}\\
-  La producción $\nt{A}\to\eps$ genera directamente el ítem completo $\nt{A}\to\bullet$.\\
+  \textbf{Paso 2. Cerradura y AFD de elementos $\lrc$ (\texttt{goto})}\\
+  La producción $\nt{A}\to\eps$ genera directamente el elemento completo $\nt{A}\to\bullet$.\\
 
-  \textbf{Cerradura}$\big(\{\nt{A'}\to\bullet\,\nt{A}\}\big)$: el punto está antes de \nt{A}, se agregan
-  $\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ y $\nt{A}\to\bullet$.
+  \[
+  \textbf{closure}\big(\{\nt{A'}\to\bullet\,\nt{A}\}\big)
+  \]
+  punto está antes de \nt{A}, agregamos $\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ y $\nt{A}\to\bullet$.
 
   \medskip
 
@@ -967,17 +1000,23 @@
   \end{aligned}
   \]
 
-  \textbf{Transiciones:} el ítem $\nt{A}\to\bullet$ ya está completo, no avanza.
+  \textbf{Transiciones:} el elemento $\nt{A}\to\bullet$ ya está completo, no avanza.
   \[
   \begin{aligned}
-    X=\nt{A}:\ \texttt{goto}(I_0,\nt{A}) = \{\, & \nt{A'}\to\nt{A}\,\bullet,\\
-                                              & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\} = \boxed{I_1}
+    X=\nt{A}:\ \texttt{goto}(I_0,\tx{A}) = \{\, & \nt{A'}\to\nt{A}\,\bullet,\\
+                                            & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\} = \boxed{I_1}
   \end{aligned}
   \]
 
   \medskip
 
-  \textbf{Estado:}\quad $I_1$ (el calculado arriba)\\
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_1 = \{\, & \nt{A'}\to\nt{A}\,\bullet,\\
+               & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\}
+  \end{aligned}
+  \]
   Contiene $\nt{A'}\to\nt{A}\,\bullet$, así que aquí va \textit{aceptar}.
 
   \textbf{Transiciones:}
@@ -992,35 +1031,49 @@
 
   \medskip
 
-  \textbf{Estado:}\quad $I_2$ (el calculado arriba)
-
-  \textbf{Transiciones:} con $\nt{A}\to\bullet$ no se avanza, y los otros dos ítems tienen el punto antes de \nt{A}.
+  \textbf{Estado:}
   \[
   \begin{aligned}
-    X=\nt{A}:\ \texttt{goto}(I_2,\nt{A}) = \{\, & \nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\\
-                                              & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\} = \boxed{I_3}
+    I_2 = \{\, & \nt{A}\to\nt{A}\,\tk{(}\,\bullet\,\nt{A}\,\tk{)},\\
+               & \nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\\
+               & \nt{A}\to\bullet\,\}
+  \end{aligned}
+  \]
+
+  \textbf{Transiciones:} con $\nt{A}\to\bullet$ no se avanza, y los otros dos elementos tienen el punto antes
+  de \nt{A}.
+  \[
+  \begin{aligned}
+    X=\nt{A}:\ \texttt{goto}(I_2,\tx{A}) = \{\, & \nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\\
+                                            & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\} = \boxed{I_3}
   \end{aligned}
   \]
 
   \medskip
 
-  \textbf{Estado:}\quad $I_3$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_3 = \{\, & \nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\\
+               & \nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}\,\}
+  \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\tk{)}:\ \texttt{goto}(I_3,\tk{)}) &= \{\,\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet\,\} = \boxed{I_4}\\[3pt]
+    X=\tk{)}:\ \texttt{goto}(I_3,\tk{)}) &= \{\,\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet\,\} = \boxed{I_4}\\[4pt]
     X=\tk{(}:\ \texttt{goto}(I_3,\tk{(}) &= I_2
   \end{aligned}
   \]
-  Con \tk{(} se obtiene el mismo conjunto de ítems que $I_2$.
+  Con \tk{(} se obtiene el mismo conjunto de elementos que $I_2$.
 
   \medskip
 
   \textbf{Estado:}\quad $I_4 = \{\,\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet\,\}$\\
-  Ítem completo, no tiene transiciones.\\
+  Elemento completo, no tiene transiciones.\\
 
-  El AFD tiene 5 estados, $I_0,\ldots,I_4$.
+  Por lo tanto, el AFD tiene cinco estados $I_0,\ldots,I_4$.
 
   \bigskip
 
@@ -1030,28 +1083,28 @@
   \nt{A} es anulable por $\nt{A}\to\eps$.\\
 
   \textbf{Paso 2. \textsc{First}}\\
-  $\First{\nt{A}}$ contiene $\eps$ por $\nt{A}\to\eps$. En $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ el primer símbolo
-  es \nt{A}, que es anulable, así que se agrega $\First{\nt{A}}\setminus\{\eps\}$ (nada nuevo) y se continúa con
-  \tk{(}, que es terminal y detiene el recorrido:
+  $\First{\tx{A}}$ contiene $\eps$ por $\nt{A}\to\eps$. En $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ el primer
+  símbolo es \nt{A}, que es anulable, así que agregamos $\First{\nt{A}}\setminus\{\eps\}$ (nada nuevo) y
+  continuamos con \tk{(}, que es terminal y detiene el recorrido:
   \[
-  \First{\nt{A}} = \{\tk{(},\ \eps\}
+  \First{\tx{A}} = \{\tk{(},\ \eps\}
   \]
 
   \textbf{Paso 3. \textsc{Follow}}\\
-  Es el símbolo inicial, así que aporta \tk{\$}. En $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ la primera \nt{A} va
-  seguida de \tk{(} y la segunda de \tk{)}. \nt{A} nunca queda al final de una producción.
+  Es el símbolo inicial, así que aporta \tk{\$}. En $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ la primera
+  \nt{A} va seguida de \tk{(} y la segunda de \tk{)}, \nt{A} nunca queda al final de una producción.
   \[
-  \Follow{\nt{A}} = \{\tk{\$},\ \tk{(},\ \tk{)}\}
+  \Follow{\tx{A}} = \{\tk{\$},\ \tk{(},\ \tk{)}\}
   \]
-  Además, $\Follow{\nt{A'}} = \{\tk{\$}\}$.\\
+  Además, $\Follow{\tx{A'}} = \{\tk{\$}\}$.\\
 
   \textbf{Paso 4. Tabla $\slr$}\\
-  Se usan las mismas reglas del inciso b de la gramática 1. Las reducciones son $\nt{A}\to\eps$ (regla 2) en
-  $I_0$ e $I_2$, y $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ (regla 1) en $I_4$. Como
-  $\Follow{\nt{A}}=\{\tk{(},\tk{)},\tk{\$}\}$, se colocan en las tres columnas.
+  Usamos las mismas reglas del inciso \textbf{b)} de la gramática 1. Las reducciones son $\nt{A}\to\eps$
+  (regla 2) en $I_0$ e $I_2$, y $\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}$ (regla 1) en $I_4$.\\
+  Como $\Follow{\tx{A}}=\{\tk{(},\tk{)},\tk{\$}\}$, los colocamos en las tres columnas.
   \[
   \begin{array}{c|c|c|c||c}
-    & \multicolumn{3}{c||}{\text{Acción}} & \text{GOTO} \\ \hline
+    & \multicolumn{3}{c||}{\textbf{acción}} & \textbf{goto} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{\$} & \nt{A} \\ \hline
     0 & r2 & r2 & r2 & 1 \\ \hline
     1 & d2 &    & \text{aceptar} &   \\ \hline
@@ -1062,10 +1115,11 @@
   \]
 
   \textbf{Paso 5. Verificación de conflictos}\\
-  Solo $I_1$ mezcla aceptar con un desplazamiento, pero están en columnas distintas (\tk{\$} y \tk{(}). En $I_0$ e
-  $I_2$ la reducción $\nt{A}\to\bullet$ convive con ítems que tienen el punto antes de \nt{A}, no antes de un
-  terminal, así que no hay desplazamiento que choque. Ninguna celda tiene más de una acción: la gramática es
-  $\slr$.
+  Solo $I_1$ mezcla aceptar con un desplazamiento, pero están en columnas distintas (\tk{\$} y \tk{(}).
+  En $I_0$ e $I_2$ la reducción $\nt{A}\to\bullet$ convive con elementos que tienen el punto antes de \nt{A},
+  no antes de un terminal, así que no hay desplazamiento que choque.\\
+
+  Ninguna celda tiene más de una acción, por lo tanto la gramática es $\slr$.
 
   \bigskip
 
@@ -1077,46 +1131,48 @@
   \[
   \begin{array}{r l l l}
     \# & \text{Pila} & \text{Entrada} & \text{Acción} \\ \hline
-    1  & 0 & \tk{(\,(\,)\,(\,)\,)\,\$} & r2\ (\nt{A}\to\eps),\ \mathrm{GOTO}[0,\nt{A}]=1 \\
+    1  & 0 & \tk{(\,(\,)\,(\,)\,)\,\$} & r2\ (\nt{A}\to\eps),\ \textbf{goto}\tk{[}0,\tx{A}\tk{]}=1 \\
     2  & 0\,\nt{A}\,1 & \tk{(\,(\,)\,(\,)\,)\,\$} & d2 \\
-    3  & 0\,\nt{A}\,1\,\tk{(}\,2 & \tk{(\,)\,(\,)\,)\,\$} & r2,\ \mathrm{GOTO}[2,\nt{A}]=3 \\
+    3  & 0\,\nt{A}\,1\,\tk{(}\,2 & \tk{(\,)\,(\,)\,)\,\$} & r2,\ \textbf{goto}\tk{[}2,\tx{A}\tk{]}=3 \\
     4  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3 & \tk{(\,)\,(\,)\,)\,\$} & d2 \\
-    5  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2 & \tk{)\,(\,)\,)\,\$} & r2,\ \mathrm{GOTO}[2,\nt{A}]=3 \\
+    5  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2 & \tk{)\,(\,)\,)\,\$} & r2,\ \textbf{goto}\tk{[}2,\tx{A}\tk{]}=3 \\
     6  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3 & \tk{)\,(\,)\,)\,\$} & d4 \\
-    7  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{(\,)\,)\,\$} & r1\ (\nt{A}\to\nt{A}\tk{(}\nt{A}\tk{)}),\ \mathrm{GOTO}[2,\nt{A}]=3 \\
+    7  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{(\,)\,)\,\$} & r1\ (\nt{A}\to\nt{A}\tk{(}\nt{A}\tk{)}),\ \textbf{goto}\tk{[}2,\tx{A}\tk{]}=3 \\
     8  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3 & \tk{(\,)\,)\,\$} & d2 \\
-    9  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2 & \tk{)\,)\,\$} & r2,\ \mathrm{GOTO}[2,\nt{A}]=3 \\
+    9  & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2 & \tk{)\,)\,\$} & r2,\ \textbf{goto}\tk{[}2,\tx{A}\tk{]}=3 \\
     10 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3 & \tk{)\,)\,\$} & d4 \\
-    11 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{)\,\$} & r1,\ \mathrm{GOTO}[2,\nt{A}]=3 \\
+    11 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{)\,\$} & r1,\ \textbf{goto}\tk{[}2,\tx{A}\tk{]}=3 \\
     12 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3 & \tk{)\,\$} & d4 \\
-    13 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{\$} & r1,\ \mathrm{GOTO}[0,\nt{A}]=1 \\
+    13 & 0\,\nt{A}\,1\,\tk{(}\,2\,\nt{A}\,3\,\tk{)}\,4 & \tk{\$} & r1,\ \textbf{goto}\tk{[}0,\tx{A}\tk{]}=1 \\
     14 & 0\,\nt{A}\,1 & \tk{\$} & \text{aceptar}
   \end{array}
   \]
   }
-  En la fila 1 la reducción $\nt{A}\to\eps$ no saca nada de la pila: solo se apila \nt{A} con el estado
-  $\mathrm{GOTO}[0,\nt{A}]$. La cadena es aceptada.
+  En la fila 1 la reducción $\nt{A}\to\eps$ no saca nada de la pila, solo se apila \nt{A} con el estado
+  $\textbf{goto}\tk{[}0,\tx{A}]$, por lo que, la cadena es aceptada.
 
   \bigskip
 
   \textbf{\large d. ¿La gramática 2 es $\lrc$?}\\
 
-  Se revisa cada estado buscando un ítem completo junto con un ítem que tenga un terminal después del punto
-  (desplazamiento/reducción) o dos ítems completos (reducción/reducción):
+  Se revisa cada estado buscando un elemento completo junto con un elemento que tenga un terminal después del
+  punto ($d_N/r_J$) o dos elementos completos ($r_J/r_{J'}$).
   \begin{itemize}
-  \item $I_0$ e $I_2$: el único ítem completo es $\nt{A}\to\bullet$, y los demás tienen el punto antes de \nt{A}
-    (no es un desplazamiento). No hay conflicto.
+  \item $I_0$ e $I_2$: el único elemento completo es $\nt{A}\to\bullet$, y los demás tienen el punto antes de
+    \nt{A} (no es un desplazamiento), no hay conflicto.
   \item $I_1$: $\nt{A'}\to\nt{A}\,\bullet$ es \textit{aceptar} en la columna \tk{\$} (no es una reducción) y
-    $\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}$ desplaza con \tk{(}. Son columnas distintas.
+    $\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)}$ desplaza con \tk{(}, son columnas distintas.
   \item $I_3$: solo desplazamientos (con \tk{)} y con \tk{(}).
-  \item $I_4$: un único ítem completo.
+  \item $I_4$: un único elemento completo.
   \end{itemize}
-  No hay conflictos, por lo tanto \textbf{la gramática 2 es $\lrc$}. En $\lrc$ las reducciones van en todas las
-  columnas de terminales; como aquí $\Follow{\nt{A}}$ ya contiene a \tk{(}, \tk{)} y \tk{\$}, la tabla coincide con la
-  $\slr$:
+  
+  No hay conflictos, por lo tanto \textbf{la gramática 2 es $\lrc$}.\\
+
+  En $\lrc$ las reducciones van en todas las columnas de terminales; como aquí $\Follow{\tx{A}}$ ya contiene a
+  \tk{(}, \tk{)} y \tk{\$}, la tabla coincide con la $\slr$:
   \[
   \begin{array}{c|c|c|c||c}
-    & \multicolumn{3}{c||}{\text{Acción}} & \text{GOTO} \\ \hline
+    & \multicolumn{3}{c||}{\textbf{acción}} & \textbf{goto} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{\$} & \nt{A} \\ \hline
     0 & r2 & r2 & r2 & 1 \\ \hline
     1 & d2 &    & \text{aceptar} &   \\ \hline
@@ -1637,14 +1693,14 @@
   \end{aligned}
   \]
 
-  \textbf{Paso 2. Cerradura y AFD de ítems $\lr$ (\texttt{goto})}\\
-  Recordemos que un ítem $\lr$ es $[\nt{X}\to\alpha\,\bullet\,\beta,\ x]$, donde $x$ es el terminal que debe
+  \textbf{Paso 2. Cerradura y AFD de elementos $\lr$ (\texttt{goto})}\\
+  Recordemos que un elemento $\lr$ es $[\nt{X}\to\alpha\,\bullet\,\beta,\ x]$, donde $x$ es el terminal que debe
   seguir si se reduce con esa producción. Las reglas son:
   \begin{itemize}
   \item \textbf{Cerradura}: de $[\nt{X}\to\alpha\,\bullet\,\nt{Y}\,\beta,\ x]$ se agrega
     $[\nt{Y}\to\bullet\,\gamma,\ y]$ para cada producción de \nt{Y} y cada $y\in\First{\beta\,x}$.
-  \item \textbf{\texttt{goto}($I_k$, X)}: se avanza el punto sobre $X$ en los ítems que lo tienen justo antes,
-    conservando su lookahead, y al resultado se le aplica la cerradura.
+  \item \textbf{\texttt{goto}($I_k$, X)}: se avanza el punto sobre $X$ en los elementos que lo tienen justo
+    antes, conservando su lookahead, y al resultado se le aplica la cerradura.
   \end{itemize}
 
   \[
@@ -1691,7 +1747,7 @@
   \medskip
 
   \textbf{Estado:}\quad $I_1 = \{\,[\nt{S'}\to\nt{S}\,\bullet,\ \tk{\$}]\,\}$\\
-  Es el estado de aceptación. No tiene transiciones.
+  Es el estado de aceptación, no tiene transiciones.
 
   \medskip
 
@@ -1753,7 +1809,7 @@
 
   \medskip
 
-  \textbf{Estados con ítems completos}, es decir, no tienen transiciones:
+  \textbf{Estados con elementos completos}, es decir, no tienen transiciones:
   \[
   \begin{aligned}
     I_6 &= \{\,[\nt{A}\to\tk{c}\,\bullet,\ \tk{d}],\ [\nt{B}\to\tk{c}\,\bullet,\ \tk{e}]\,\} &
@@ -1774,8 +1830,8 @@
   \item \textbf{goto}: si $\texttt{goto}(I_k, \tx{X}) = I_N$ con \nt{X} no terminal, entonces
     $\textbf{goto} \tk{[} k, \tx{X} \tk{]} = N$.
     
-  \item \textbf{reducir} ($r_j$): para cada ítem $[\nt{X}\to\alpha\,\bullet,\ y]$, donde $j$ es el número de la
-    producción. En $\lr$ se coloca \textbf{únicamente en la columna $y$}, el lookahead del ítem.
+  \item \textbf{reducir} ($r_j$): para cada elemento $[\nt{X}\to\alpha\,\bullet,\ y]$, donde $j$ es el
+    número de la producción. En $\lr$ se coloca \textbf{únicamente en la columna $y$}, el lookahead del elemento.
     
   \item \textbf{aceptar}: el estado que contiene $[\nt{S'}\to\nt{S}\,\bullet,\ \tk{\$}]$ lleva \textit{aceptar}
     en la columna \tk{\$}.
@@ -1803,7 +1859,7 @@
   \]
 
   \textbf{Paso 4. Verificación de conflictos}\\
-  Los únicos estados donde podría haber conflicto son $I_6$ e $I_9$, que tienen dos ítems completos:
+  Los únicos estados donde podría haber conflicto son $I_6$ e $I_9$, que tienen dos elementos completos:
   \begin{itemize}
   \item $I_6$: $\nt{A}\to\tk{c}\,\bullet$ con lookahead $\{\tk{d}\}$ y $\nt{B}\to\tk{c}\,\bullet$ con lookahead
     $\{\tk{e}\}$, son disjuntos.
@@ -1811,8 +1867,8 @@
   \item $I_9$: $\nt{B}\to\tk{c}\,\bullet$ con lookahead $\{\tk{d}\}$ y $\nt{A}\to\tk{c}\,\bullet$ con lookahead
     $\{\tk{e}\}$, también son disjuntos.
   \end{itemize}
-  El resto de los estados tiene un solo ítem completo o solo ítems de desplazamiento. Ninguna celda tiene más
-  de una acción.\\
+  El resto de los estados tiene un solo elemento completo o solo elementos de desplazamiento.
+  Ninguna celda tiene más de una acción.\\
 
   \textbf{La gramática es $\lr$.}
 
@@ -1823,7 +1879,7 @@
   \boxed{\textbf{\large P.D.}}\ \textbf{\large La gramática no es $\lalr$}\\
 
   \textbf{Paso 1. Estados con el mismo núcleo}\\
-  El núcleo de un estado son sus ítems sin lookaheads. Comparando $I_6$ e $I_9$:
+  El núcleo de un estado son sus elementos sin lookaheads. Comparando $I_6$ e $I_9$:
   \[
   \begin{aligned}
     I_6 &= \{[\nt{A}\to\tk{c}\,\bullet,\ \tk{d}],\ [\nt{B}\to\tk{c}\,\bullet,\ \tk{e}]\} \\
@@ -1835,7 +1891,7 @@
   $\nt{S}\to\tk{b}\,\bullet\ldots$). Ningún otro par de estados comparte núcleo.\\
 
   \textbf{Paso 2. Fusión y AFD $\lalr$}\\
-  Se fusionan $I_6$ e $I_9$ en un solo estado, uniendo los lookaheads de cada ítem:
+  Se fusionan $I_6$ e $I_9$ en un solo estado, uniendo los lookaheads de cada elemento:
   \[
   I_{69} = I_6 \cup I_9 = \{\,[\nt{A}\to\tk{c}\,\bullet,\ \tk{d}/\tk{e}],\ [\nt{B}\to\tk{c}\,\bullet,\ \tk{d}/\tk{e}]\,\}
   \]
@@ -1871,7 +1927,7 @@
   \]
 
   \textbf{Paso 4. Conflicto}\\
-  En $I_{69}$ ambos ítems completos tienen ahora los mismos lookaheads $\{\tk{d},\tk{e}\}$, así que
+  En $I_{69}$ ambos elementos completos tienen ahora los mismos lookaheads $\{\tk{d},\tk{e}\}$, así que
   $\textbf{accion}\tk{[} 69,\ tk{d} \tk{]} = \{r5,\ r6\}$ y
   $\textbf{accion} \tk{[} 69, \tk{e} \tk{]} = \{r5,\ r6\}$, hay un conflicto $r5/r6$.\\
   Al tener \tk{c} en el tope y \tk{d} (o \tk{e}) como siguiente símbolo, el analizador $\lalr$ ya no recuerda
@@ -1880,7 +1936,7 @@
   \textbf{Observación.} La gramática tampoco es $\slr$, pues
   $\Follow{\tx{A}} = \Follow{\tx{B}} = \{\tk{d},\tk{e}\}$ produce el mismo conflicto. Fusionar estados no
   puede crear conflictos $d_N/r_j$ (el desplazamiento depende solo del núcleo), únicamente
-  $r_j/r_{j'}$, y eso es lo que ocurre aquí.\\
+  $r_j/r_{j'}$, y eso es lo que ocurre en este caso.\\
 
   Así \textbf{La gramática no es $\lalr$}.\\
 
