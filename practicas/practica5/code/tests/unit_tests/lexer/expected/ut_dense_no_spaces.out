@@ -1,0 +1,14 @@
+1:0 IF if
+1:2 ASSIGN =
+1:3 WHILE while
+1:8 PLUS +
+1:9 ELSE else
+1:13 LPAREN (
+1:14 TRUE true
+1:18 RPAREN )
+1:19 LBRACE {
+1:20 PRINT print
+1:25 STAR *
+1:26 AND &&
+1:28 RBRACE }
+2:0 TOKEN_EOF

@@ -1,0 +1,15 @@
+AST:
+Program
+  VariableDeclaration(int, x)
+    Integer(3)
+  While
+    Condition
+      Greater
+        Identifier(x)
+        Integer(0)
+    Body
+      Assignment(x)
+        Subtract
+          Identifier(x)
+          Integer(1)
+Programa sintacticamente correcto.

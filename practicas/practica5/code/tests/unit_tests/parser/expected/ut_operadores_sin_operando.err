@@ -1,0 +1,8 @@
+Error sintactico [1:12]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [2:4]: se esperaba una expresion, pero se encontro '*'.
+Error sintactico [3:8]: se esperaba una expresion, pero se encontro '*'.
+Error sintactico [4:9]: se esperaba una expresion, pero se encontro ')'.
+Error sintactico [5:10]: se esperaba una expresion, pero se encontro ')'.
+Error sintactico [6:17]: se esperaba una expresion, pero se encontro '||'.
+Error sintactico [7:6]: se esperaba una expresion, pero se encontro ';'.
+Error sintactico [9:10]: se esperaba una expresion, pero se encontro ')'.

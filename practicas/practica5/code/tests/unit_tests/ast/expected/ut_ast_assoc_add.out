@@ -1,0 +1,9 @@
+AST:
+Program
+  VariableDeclaration(int, x)
+    Add
+      Add
+        Integer(10)
+        Integer(5)
+      Integer(2)
+Programa sintacticamente correcto.
