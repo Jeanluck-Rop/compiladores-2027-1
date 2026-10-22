@@ -970,7 +970,7 @@
 
   \textbf{\Large Gramática 2}\\
 
-    \textbf{\large a. AFD de elementos $\lrc$}\\
+  \textbf{\large a. AFD de elementos $\lrc$}\\
 
   \textbf{Paso 1. Gramática aumentada y reglas de producción}
   \[
@@ -1199,34 +1199,82 @@
   %%%%%%%%%%%%%%%%%%%%%%%%%%
   \bigskip
   %%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  \textbf{Reglas $\lr$ que se usan.} Un ítem es $[\nt{X}\to\alpha\,\bullet\,\beta,\ x]$, con $x$ el terminal que debe
-  seguir si se reduce con esa producción.
+
+  Para este ejercicio, debemos definir lo que es el \textbf{lookahead} (símbolo de anticipación, concepto que
+  usaremos tanto para $\lr$ y $\lalr$), este consiste en el siguiente terminal de la cadena de entrada, que el
+  analizador mira sin consumirlo para decidir qué acción realizar. El 1 de $\lr$ y $\lalr$ indica que
+  se usa un símbolo de anticipación, en $\lr$, cada elemento lleva su propio lookahead:
+  \[
+  [\nt{X}\to\alpha\,\bullet\,\beta,\ x]
+  \]
+  donde $x$ es un terminal (o \tk{\$}, el fin de la cadena) que debe aparecer inmediatamente después de
+  $\nt{X}\to\alpha\beta$ cuando esta producción se reduce. Por eso, un elemento con el punto al final,
+  $[\nt{X}\to\alpha\,\bullet,\ x]$, solo nos permite reducir cuando el siguiente símbolo de la entrada es $x$.\\
+
+  Los lookaheads se calculan así:
   \begin{itemize}
-  \item \textbf{Cerradura}: de $[\nt{X}\to\alpha\,\bullet\,\nt{Y}\,\beta,\ x]$ se agrega
-    $[\nt{Y}\to\bullet\,\gamma,\ y]$ para cada producción de \nt{Y} y cada $y\in\First{\beta\,x}$.
-  \item \textbf{\texttt{goto}($I_k$, $X$)}: se avanza el punto sobre $X$ conservando el lookahead de cada ítem y
-    se aplica la cerradura.
-  \item \textbf{Tabla}: desplazar y GOTO igual que en $\slr$; una reducción $[\nt{X}\to\alpha\,\bullet,\ y]$ va
-    \textbf{solo en la columna $y$}; aceptar en la columna \tk{\$} del estado con $[\nt{S'}\to\nt{S}\,\bullet,\ \tk{\$}]$.
-  \item $\lalr$: se fusionan los estados del AFD $\lr$ con el mismo núcleo (mismos ítems sin lookaheads),
-    uniendo los lookaheads de cada ítem.
+  \item El elemento inicial es $[\nt{S'}\to\bullet\,\nt{S},\ \tk{\$}]$, pues después de la cadena completa solo
+    puede venir el fin de la entrada.
+    
+  \item En la cerradura, el lookahead de lo que se agrega es $\First{\beta\,x}$, es decir, lo que puede seguir
+    a \nt{Y} en ese contexto. Por ejemplo, en la gramática 1, de $[\nt{E'}\to\bullet\,\nt{E},\ \tk{\$}]$ no hay
+    nada después de \nt{E} ($\beta=\eps$), así que $[\nt{E}\to\bullet\,\tk{a},\ y]$ con
+    $y\in\First{\tk{\$}}=\{\tk{\$}\}$. En cambio, de $[\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{\$}]$
+    después de \nt{L} viene \tk{)}, así que
+    $[\nt{L}\to\bullet\,\nt{E},\ y]$ con $y\in\First{\tk{)}\,\tk{\$}}=\{\tk{)}\}$.
+    
+  \item En \textbf{goto}, el elemento conserva su lookahead al avanzar el punto.
   \end{itemize}
-  Se usan las mismas producciones numeradas del ejercicio anterior. Un lookahead escrito $\tk{)}/\tk{,}$ significa
-  que se tiene un ítem por cada terminal.
 
+  \bigskip
+
+  \textbf{Reglas $\lr$ que se usan.}\\
+  Un elemento es $[\nt{X}\to\alpha\,\bullet\,\beta,\ x]$, con $x$ el lookahead.
+  \begin{itemize}
+  \item \textbf{Cerradura}: de $[\nt{X}\to\alpha\,\bullet\,\nt{Y}\,\beta,\ x]$ agregamos
+    $[\nt{Y}\to\bullet\,\gamma,\ y]$ para cada producción de \nt{Y} y cada $y\in\First{\beta\,x}$.
+
+  \item \textbf{\texttt{goto}($I_k$, $X$)}: avanzamos el punto sobre $X$ conservando el \textbf{lookahead} de
+    cada elemento y aplicamos la cerradura.
+    
+  \item \textbf{Tabla}: \textbf{desplazar} y \textbf{goto} igual que en $\slr$; una reducción
+    $[\nt{X}\to\alpha\,\bullet,\ y]$ va solo en la columna $y$; \textbf{aceptar} en la columna \tk{\$} del
+    estado con $[\nt{S'}\to\nt{S}\,\bullet,\ \tk{\$}]$.
+    
+  \item $\lalr$: fusionamos los estados del AFD $\lr$ con el mismo núcleo (mismos elementos sin
+    \textbf{lookaheads}), uniendo los \textbf{lookaheads} de cada elemento.
+  \end{itemize}
+
+  Un lookahead escrito $\tk{)}/\tk{,}$ significa que se tiene un elemento por cada terminal. Es decir,
+  $[\nt{X}\to\alpha\,\bullet\,\beta,\ \tk{)}/\tk{,}]$ abrevia $[\nt{X}\to\alpha\,\bullet\,\beta,\ \tk{)}]$ y
+  $[\nt{X}\to\alpha\,\bullet\,\beta,\ \tk{,}]$.\\
+ 
+  Usaremos las mismas producciones numeradas del ejercicio anterior:
+  \[
+  \begin{array}{l@{\qquad\qquad}l}
+    \textbf{Gramática 1} & \textbf{Gramática 2} \\[3pt]
+    (0)\ \nt{E'} \to \nt{E} & (0)\ \nt{A'} \to \nt{A} \\
+    (1)\ \nt{E} \to \tk{(}\,\nt{L}\,\tk{)} & (1)\ \nt{A} \to \nt{A}\,\tk{(}\,\nt{A}\,\tk{)} \\
+    (2)\ \nt{E} \to \tk{a} & (2)\ \nt{A} \to \eps \\
+    (3)\ \nt{L} \to \nt{L}\,\tk{,}\,\nt{E} & \\
+    (4)\ \nt{L} \to \nt{E} &
+  \end{array}
+  \]
+
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%
   \bigskip
   \bigskip
   %%%%%%%%%%%%%%%%%%%%%%%%%%
 
   
-    \textbf{\Large Gramática 1}\\
+  \textbf{\Large Gramática 1}\\
 
   \textbf{\large a. AFD de ítems $\lr$}\\
-
-  \textbf{Cerradura}$\big(\{[\nt{E'}\to\bullet\,\nt{E},\ \tk{\$}]\}\big)$: tras \nt{E} no hay nada, así que el
-  lookahead de las producciones de \nt{E} es $\First{\tk{\$}}=\{\tk{\$}\}$.
+  \[
+  \textbf{closure}\big(\{[\nt{E'}\to\bullet\,\nt{E},\ \tk{\$}]\}\big)
+  \]
+  tras \nt{E} no hay nada, así que el lookahead de las producciones de \nt{E} es $\First{\tk{\$}}=\{\tk{\$}\}$.
 
   \medskip
 
@@ -1242,39 +1290,51 @@
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{E}:\ \texttt{goto}(I_0,\nt{E}) &= \{\,[\nt{E'}\to\nt{E}\,\bullet,\ \tk{\$}]\,\} = \boxed{I_1}\\[6pt]
+    X=\nt{E}:\ \texttt{goto}(I_0,\tx{E}) &= \{\,[\nt{E'}\to\nt{E}\,\bullet,\ \tk{\$}]\,\} = \boxed{I_1}\\[6pt]
     X=\tk{(}:\ \texttt{goto}(I_0,\tk{(}) = \{\, & [\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{\$}],\\
-                                              & [\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}],\\
-                                              & [\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
-                                              & [\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
-                                              & [\nt{E}\to\bullet\,\tk{a},\ \tk{)}/\tk{,}]\,\} = \boxed{I_2}\\[6pt]
+                                                & [\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}],\\
+                                                & [\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
+                                                & [\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
+                                                & [\nt{E}\to\bullet\,\tk{a},\ \tk{)}/\tk{,}]\,\} = \boxed{I_2}\\[6pt]
     X=\tk{a}:\ \texttt{goto}(I_0,\tk{a}) &= \{\,[\nt{E}\to\tk{a}\,\bullet,\ \tk{\$}]\,\} = \boxed{I_3}
   \end{aligned}
   \]
+  
   Lookaheads de la cerradura en $I_2$:
   \begin{itemize}
   \item De $[\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{\$}]$: \nt{L} va seguida de \tk{)}, así que las
     producciones de \nt{L} tienen lookahead $\First{\tk{)}\,\tk{\$}}=\{\tk{)}\}$.
-  \item De $[\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}]$: \nt{L} va seguida de \tk{,}, así que se agrega
-    también el lookahead \tk{,}. Por eso las producciones de \nt{L} quedan con $\tk{)}/\tk{,}$.
+    
+  \item De $[\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}]$: \nt{L} va seguida de \tk{,}, así que agregamos
+    también el lookahead \tk{,}, por eso las producciones de \nt{L} quedan con $\tk{)}/\tk{,}$.
+    
   \item De $[\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}]$: \nt{E} no va seguida de nada, hereda $\tk{)}/\tk{,}$.
   \end{itemize}
 
   \medskip
 
   \textbf{Estado:}\quad $I_1 = \{\,[\nt{E'}\to\nt{E}\,\bullet,\ \tk{\$}]\,\}$\\
-  Es el estado de aceptación. No tiene transiciones.
+  Es el estado de aceptación, no tiene transiciones.
 
-  \medskip
+  \bigskip
 
-  \textbf{Estado:}\quad $I_2$ (el calculado arriba)
-
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_2 = \{\, & [\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{\$}],\\
+               & [\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}],\\
+               & [\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{a},\ \tk{)}/\tk{,}]\,\}
+    \end{aligned}
+  \]
+  
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{L}:\ \texttt{goto}(I_2,\nt{L}) = \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{\$}],\\
+    X=\nt{L}:\ \texttt{goto}(I_2,\tx{L}) = \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{\$}],\\
                                               & [\nt{L}\to\nt{L}\,\bullet\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}]\,\} = \boxed{I_4}\\[6pt]
-    X=\nt{E}:\ \texttt{goto}(I_2,\nt{E}) &= \{\,[\nt{L}\to\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\} = \boxed{I_5}\\[6pt]
+    X=\nt{E}:\ \texttt{goto}(I_2,\tx{E}) &= \{\,[\nt{L}\to\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\} = \boxed{I_5}\\[6pt]
     X=\tk{(}:\ \texttt{goto}(I_2,\tk{(}) = \{\, & [\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
                                               & [\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}],\\
                                               & [\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
@@ -1283,18 +1343,24 @@
     X=\tk{a}:\ \texttt{goto}(I_2,\tk{a}) &= \{\,[\nt{E}\to\tk{a}\,\bullet,\ \tk{)}/\tk{,}]\,\} = \boxed{I_7}
   \end{aligned}
   \]
-  $I_6$ tiene los mismos ítems que $I_2$ salvo el primero, cuyo lookahead es $\tk{)}/\tk{,}$ y no \tk{\$}
-  (porque viene de un \tk{(} anidado dentro de una lista). Por eso es un estado distinto. Lo mismo pasa con
+  $I_6$ tiene los mismos elementos que $I_2$ salvo el primero, cuyo lookahead es $\tk{)}/\tk{,}$ y no \tk{\$}
+  (porque viene de un \tk{(} anidado dentro de una lista), por eso es un estado distinto; lo mismo pasa con
   $I_7$ respecto de $I_3$.
 
   \medskip
 
   \textbf{Estado:}\quad $I_3 = \{\,[\nt{E}\to\tk{a}\,\bullet,\ \tk{\$}]\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elementos completo, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_4$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_4 =  \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{\$}],\\
+                & [\nt{L}\to\nt{L}\,\bullet\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}]\,\}
+    \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
@@ -1309,18 +1375,27 @@
   \medskip
 
   \textbf{Estado:}\quad $I_5 = \{\,[\nt{L}\to\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_6$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_6 = \{\, & [\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
+               & [\nt{L}\to\bullet\,\nt{L}\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}],\\
+               & [\nt{L}\to\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{a},\ \tk{)}/\tk{,}]\,\}
+    \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{L}:\ \texttt{goto}(I_6,\nt{L}) = \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{)}/\tk{,}],\\
+    X=\nt{L}:\ \texttt{goto}(I_6,\tx{L}) = \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{)}/\tk{,}],\\
                                               & [\nt{L}\to\nt{L}\,\bullet\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}]\,\} = \boxed{I_{10}}\\[6pt]
-    X=\nt{E}:\ \texttt{goto}(I_6,\nt{E}) &= I_5\\[3pt]
+    X=\nt{E}:\ \texttt{goto}(I_6,\tx{E}) &= I_5\\[3pt]
     X=\tk{(}:\ \texttt{goto}(I_6,\tk{(}) &= I_6\\[3pt]
     X=\tk{a}:\ \texttt{goto}(I_6,\tk{a}) &= I_7
   \end{aligned}
@@ -1329,21 +1404,28 @@
   \medskip
 
   \textbf{Estado:}\quad $I_7 = \{\,[\nt{E}\to\tk{a}\,\bullet,\ \tk{)}/\tk{,}]\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
   \textbf{Estado:}\quad $I_8 = \{\,[\nt{E}\to\tk{(}\,\nt{L}\,\tk{)}\,\bullet,\ \tk{\$}]\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_9$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_9 = \{\, & [\nt{L}\to\nt{L}\,\tk{,}\,\bullet\,\nt{E},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{(}\,\nt{L}\,\tk{)},\ \tk{)}/\tk{,}],\\
+               & [\nt{E}\to\bullet\,\tk{a},\ \tk{)}/\tk{,}]\,\}
+    \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{E}:\ \texttt{goto}(I_9,\nt{E}) &= \{\,[\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\} = \boxed{I_{11}}\\[3pt]
+    X=\nt{E}:\ \texttt{goto}(I_9,\tx{E}) &= \{\,[\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\} = \boxed{I_{11}}\\[3pt]
     X=\tk{(}:\ \texttt{goto}(I_9,\tk{(}) &= I_6\\[3pt]
     X=\tk{a}:\ \texttt{goto}(I_9,\tk{a}) &= I_7
   \end{aligned}
@@ -1351,7 +1433,13 @@
 
   \medskip
 
-  \textbf{Estado:}\quad $I_{10}$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_{10} = \{\, & [\nt{E}\to\tk{(}\,\nt{L}\,\bullet\,\tk{)},\ \tk{)}/\tk{,}],\\
+                 & [\nt{L}\to\nt{L}\,\bullet\,\tk{,}\,\nt{E},\ \tk{)}/\tk{,}]\,\}
+    \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
@@ -1363,21 +1451,21 @@
 
   \medskip
 
-  \textbf{Estados con ítems completos} (no tienen transiciones):
+  \textbf{Estados con elementos completos}:
   \[
   \begin{aligned}
     I_{11} &= \{\,[\nt{L}\to\nt{L}\,\tk{,}\,\nt{E}\,\bullet,\ \tk{)}/\tk{,}]\,\}\\[3pt]
     I_{12} &= \{\,[\nt{E}\to\tk{(}\,\nt{L}\,\tk{)}\,\bullet,\ \tk{)}/\tk{,}]\,\}
   \end{aligned}
   \]
-  El AFD $\lr$ tiene 13 estados, $I_0,\ldots,I_{12}$.
+  El AFD $\lr$ tiene trece estados $I_0,\ldots,I_{12}$.
 
-  \bigskip
+  \newpage
 
   \textbf{\large b. Tabla de análisis sintáctico $\lr$}\\
   \[
   \begin{array}{c|c|c|c|c|c||c|c}
-    & \multicolumn{5}{c||}{\text{Acción}} & \multicolumn{2}{c}{\text{GOTO}} \\ \hline
+    & \multicolumn{5}{c||}{\textbf{acción}} & \multicolumn{2}{c}{\textbf{goto}} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{a} & \tk{,} & \tk{\$} & \nt{E} & \nt{L} \\ \hline
     0  & d2 &     & d3 &     &    & 1 &    \\ \hline
     1  &    &     &    &     & \text{aceptar} &   &    \\ \hline
@@ -1394,16 +1482,17 @@
     12 &    & r1  &    & r1  &    &   &    \\
   \end{array}
   \]
-  Cada reducción solo está en la columna de su lookahead: $I_3$ ($[\nt{E}\to\tk{a}\,\bullet,\ \tk{\$}]$) reduce en
-  \tk{\$} e $I_7$ ($\tk{)}/\tk{,}$) reduce en \tk{)} y \tk{,}. Ninguna celda tiene más de una acción, así que la
-  gramática 1 es $\lr$.
+  Cada reducción solo está en la columna de su lookahead $I_3$ ($[\nt{E}\to\tk{a}\,\bullet,\ \tk{\$}]$) reduce
+  en \tk{\$} e $I_7$ ($\tk{)}/\tk{,}$) reduce en \tk{)} y \tk{,}.\\
+
+  Ninguna celda tiene más de una acción, por lo tanto la gramática 1 es $\lr$.
 
   \bigskip
 
-  \textbf{\large c. AFD de ítems $\lalr$}\\
+  \textbf{\large c. AFD de elementos $\lalr$}\\
 
   \textbf{Paso 1. Estados con el mismo núcleo}\\
-  El núcleo de un estado son sus ítems sin lookaheads:
+  El núcleo de un estado son sus elementos sin lookaheads:
   \[
   \begin{aligned}
     I_2 \text{ e } I_6 &: \{\nt{E}\to\tk{(}\bullet\nt{L}\tk{)},\ \nt{L}\to\bullet\nt{L}\tk{,}\nt{E},\ \nt{L}\to\bullet\nt{E},\ \nt{E}\to\bullet\tk{(}\nt{L}\tk{)},\ \nt{E}\to\bullet\tk{a}\}\\
@@ -1415,7 +1504,7 @@
   Los demás estados ($I_0$, $I_1$, $I_5$, $I_9$, $I_{11}$) tienen núcleo único.\\
 
   \textbf{Paso 2. Fusión}\\
-  Se unen los lookaheads de cada ítem. Como $\tk{\$}\cup\tk{)}/\tk{,}=\tk{\$}/\tk{)}/\tk{,}$:
+  Se unen los lookaheads de cada elemento, como $\tk{\$}\cup\tk{)}/\tk{,}=\tk{\$}/\tk{)}/\tk{,}$:
   \[
   \begin{aligned}
     I_{26} = I_2 \cup I_6 = \{\, & [\nt{E}\to\tk{(}\,\bullet\,\nt{L}\,\tk{)},\ \tk{\$}/\tk{)}/\tk{,}],\\
@@ -1434,21 +1523,22 @@
   $I_0$, $I_1$, $I_5$, $I_9$ e $I_{11}$ se quedan igual, pero sus transiciones apuntan a los estados fusionados:
   \[
   \begin{aligned}
-    \texttt{goto}(I_0,\tk{(}) &= \boxed{I_{26}} & \texttt{goto}(I_0,\tk{a}) &= \boxed{I_{37}} & \texttt{goto}(I_0,\nt{E}) &= I_1\\[3pt]
-    \texttt{goto}(I_{26},\nt{L}) &= \boxed{I_{410}} & \texttt{goto}(I_{26},\nt{E}) &= I_5 & \texttt{goto}(I_{26},\tk{(}) &= I_{26}\\[3pt]
+    \texttt{goto}(I_0,\tk{(}) &= \boxed{I_{26}} & \texttt{goto}(I_0,\tk{a}) &= \boxed{I_{37}} & \texttt{goto}(I_0,\tx{E}) &= I_1\\[3pt]
+    \texttt{goto}(I_{26},\tx{L}) &= \boxed{I_{410}} & \texttt{goto}(I_{26},\tx{E}) &= I_5 & \texttt{goto}(I_{26},\tk{(}) &= I_{26}\\[3pt]
     \texttt{goto}(I_{26},\tk{a}) &= I_{37} & \texttt{goto}(I_{410},\tk{)}) &= \boxed{I_{812}} & \texttt{goto}(I_{410},\tk{,}) &= I_9\\[3pt]
-    \texttt{goto}(I_9,\nt{E}) &= I_{11} & \texttt{goto}(I_9,\tk{(}) &= I_{26} & \texttt{goto}(I_9,\tk{a}) &= I_{37}
+    \texttt{goto}(I_9,\tx{E}) &= I_{11} & \texttt{goto}(I_9,\tk{(}) &= I_{26} & \texttt{goto}(I_9,\tk{a}) &= I_{37}
   \end{aligned}
   \]
-  El AFD $\lalr$ tiene 9 estados: $I_0$, $I_1$, $I_{26}$, $I_{37}$, $I_{410}$, $I_5$, $I_{812}$, $I_9$, $I_{11}$.
-  Es el mismo número de estados que el AFD $\lrc$ del ejercicio anterior.
+  El AFD $\lalr$ tiene nueve estados $I_0$, $I_1$, $I_{26}$, $I_{37}$, $I_{410}$, $I_5$, $I_{812}$, $I_9$, $I_{11}$.\\
+  
+  El mismo número de estados que el AFD $\lrc$ del ejercicio anterior.
 
   \bigskip
 
   \textbf{\large d. Tabla de análisis sintáctico $\lalr$}\\
   \[
   \begin{array}{c|c|c|c|c|c||c|c}
-    & \multicolumn{5}{c||}{\text{Acción}} & \multicolumn{2}{c}{\text{GOTO}} \\ \hline
+    & \multicolumn{5}{c||}{\textbf{acción}} & \multicolumn{2}{c}{\textbf{goto}} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{a} & \tk{,} & \tk{\$} & \nt{E} & \nt{L} \\ \hline
     0   & d26 &      & d37 &     &    & 1 &     \\ \hline
     1   &     &      &     &     & \text{aceptar} &   &     \\ \hline
@@ -1462,9 +1552,10 @@
   \end{array}
   \]
   Las reducciones de $I_{37}$ e $I_{812}$ ahora van en $\tk{\$}/\tk{)}/\tk{,}$ por la unión de lookaheads. Como
-  solo se fusionaron estados con ítems de reducción de la misma producción, no aparece ningún conflicto: la
-  gramática 1 es $\lalr$. (La tabla coincide con la $\slr$ porque aquí los lookaheads unidos son justo
-  $\Follow{\nt{E}}$.)
+  solo se fusionaron estados con elementos de reducción de la misma producción, no aparece ningún conflicto.\\
+
+  Por lo tanto, la gramática 1 es $\lalr$
+  (La tabla coincide con la $\slr$ porque aquí los lookaheads unidos son justo $\Follow{\tx{E}}$).
   
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1474,12 +1565,15 @@
   
   \textbf{\Large Gramática 2}\\
 
-  \textbf{\large a. AFD de ítems $\lr$}\\
+  \textbf{\large a. AFD de elementos $\lr$}\\
 
-  \textbf{Cerradura}$\big(\{[\nt{A'}\to\bullet\,\nt{A},\ \tk{\$}]\}\big)$: tras \nt{A} no hay nada, así que
-  $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}]$ y $[\nt{A}\to\bullet,\ \tk{\$}]$. Del ítem
-  $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}]$ el no terminal \nt{A} va seguido de \tk{(}, así
-  que se agrega además el lookahead \tk{(}. Las producciones de \nt{A} quedan con $\tk{\$}/\tk{(}$.
+  \[
+  \textbf{closure}\big(\{[\nt{A'}\to\bullet\,\nt{A},\ \tk{\$}]\}\big)
+  \]
+  tras \nt{A} no hay nada, así que
+  $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}]$ y $[\nt{A}\to\bullet,\ \tk{\$}]$.
+  Del elemento $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}]$ el no terminal \nt{A} va seguido
+  de \tk{(}, así que agregamos además el lookahead \tk{(}. Las producciones de \nt{A} quedan $\tk{\$}/\tk{(}$.
 
   \medskip
 
@@ -1487,22 +1581,28 @@
   \[
   \begin{aligned}
     I_0 = \{\, & [\nt{A'}\to\bullet\,\nt{A},\ \tk{\$}],\\
-    & [\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}/\tk{(}],\\
-    & [\nt{A}\to\bullet,\ \tk{\$}/\tk{(}]\,\}
+               & [\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}/\tk{(}],\\
+               & [\nt{A}\to\bullet,\ \tk{\$}/\tk{(}]\,\}
   \end{aligned}
   \]
 
-  \textbf{Transiciones:} el ítem $[\nt{A}\to\bullet,\ \tk{\$}/\tk{(}]$ ya está completo, no avanza.
+  \textbf{Transiciones:} el elemeno $[\nt{A}\to\bullet,\ \tk{\$}/\tk{(}]$ ya está completo, no avanza.
   \[
   \begin{aligned}
-    X=\nt{A}:\ \texttt{goto}(I_0,\nt{A}) = \{\, & [\nt{A'}\to\nt{A}\,\bullet,\ \tk{\$}],\\
+    X=\nt{A}:\ \texttt{goto}(I_0,\tx{A}) = \{\, & [\nt{A'}\to\nt{A}\,\bullet,\ \tk{\$}],\\
     & [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}/\tk{(}]\,\} = \boxed{I_1}
   \end{aligned}
   \]
 
   \medskip
 
-  \textbf{Estado:}\quad $I_1$ (el calculado arriba)\\
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_1 = \{\, & [\nt{A'}\to\nt{A}\,\bullet,\ \tk{\$}],\\
+               & [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{\$}/\tk{(}]\,\}
+  \end{aligned}
+  \]
   Contiene $[\nt{A'}\to\nt{A}\,\bullet,\ \tk{\$}]$, así que aquí va \textit{aceptar}.
 
   \textbf{Transiciones:}
@@ -1513,25 +1613,38 @@
     & [\nt{A}\to\bullet,\ \tk{)}/\tk{(}]\,\} = \boxed{I_2}
   \end{aligned}
   \]
-  Lookaheads de la cerradura: en el ítem del núcleo, tras \nt{A} viene \tk{)}, así que
-  $\First{\tk{)}\,x}=\{\tk{)}\}$. Además, en $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \cdot]$ la primera
-  \nt{A} va seguida de \tk{(}. Por eso quedan $\tk{)}/\tk{(}$, sin \tk{\$}.
+  Lookaheads de la cerradura en el elemento del núcleo, tras \nt{A} viene \tk{)}, así que
+  $\First{\tk{)}\,x}=\{\tk{)}\}$. Además, en $[\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \cdot]$
+  la primera \nt{A} va seguida de \tk{(}, por eso quedan $\tk{)}/\tk{(}$, sin \tk{\$}.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_2$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_2 = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\bullet\,\nt{A}\,\tk{)},\ \tk{\$}/\tk{(}],\\
+               & [\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}],\\
+               & [\nt{A}\to\bullet,\ \tk{)}/\tk{(}]\,\}
+  \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
   \begin{aligned}
-    X=\nt{A}:\ \texttt{goto}(I_2,\nt{A}) = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{\$}/\tk{(}],\\
+    X=\nt{A}:\ \texttt{goto}(I_2,\tx{A}) = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{\$}/\tk{(}],\\
     & [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}]\,\} = \boxed{I_3}
   \end{aligned}
   \]
 
   \medskip
 
-  \textbf{Estado:}\quad $I_3$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_3 = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{\$}/\tk{(}],\\
+               & [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}]\,\}
+  \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
@@ -1542,27 +1655,39 @@
     & [\nt{A}\to\bullet,\ \tk{)}/\tk{(}]\,\} = \boxed{I_5}
   \end{aligned}
   \]
-  $I_5$ tiene los mismos ítems que $I_2$ salvo el primero, cuyo lookahead es $\tk{)}/\tk{(}$ y no $\tk{\$}/\tk{(}$.
-  Por eso es un estado distinto.
+  $I_5$ tiene los mismos elementos que $I_2$ salvo el primero, cuyo lookahead es $\tk{)}/\tk{(}$ y no
+  $\tk{\$}/\tk{(}$, por eso es un estado distinto.
 
   \medskip
 
   \textbf{Estado:}\quad $I_4 = \{\,[\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet,\ \tk{\$}/\tk{(}]\,\}$\\
-  Ítem completo, no tiene transiciones.
+  Elemento completo, no tiene transiciones.
 
   \medskip
 
-  \textbf{Estado:}\quad $I_5$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  \begin{aligned}
+    I_5 = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\bullet\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}],\\
+               & [\nt{A}\to\bullet\,\nt{A}\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}],\\
+               & [\nt{A}\to\bullet,\ \tk{)}/\tk{(}]\,\}
+  \end{aligned}
+  \]
 
   \textbf{Transiciones:}
   \[
-  X=\nt{A}:\ \texttt{goto}(I_5,\nt{A}) = \{\,[\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{)}/\tk{(}],\
+  X=\nt{A}:\ \texttt{goto}(I_5,\tx{A}) =\{\,[\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{)}/\tk{(}],\
   [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}]\,\} = \boxed{I_6}
   \]
 
   \medskip
 
-  \textbf{Estado:}\quad $I_6$ (el calculado arriba)
+  \textbf{Estado:}
+  \[
+  I_6 = \{\, [\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\bullet\,\tk{)},\ \tk{)}/\tk{(}],\
+             [\nt{A}\to\nt{A}\,\bullet\,\tk{(}\,\nt{A}\,\tk{)},\ \tk{)}/\tk{(}]\,\}
+  \]
+  \quad $I_6$ (el calculado arriba)
 
   \textbf{Transiciones:}
   \[
@@ -1575,16 +1700,16 @@
   \medskip
 
   \textbf{Estado:}\quad $I_7 = \{\,[\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet,\ \tk{)}/\tk{(}]\,\}$\\
-  Ítem completo, no tiene transiciones.\\
+  Elemento completo, no tiene transiciones.\\
 
-  El AFD $\lr$ tiene 8 estados, $I_0,\ldots,I_7$.
+  El AFD $\lr$ tiene ocho estados $I_0,\ldots,I_7$.
 
   \bigskip
 
   \textbf{\large b. Tabla de análisis sintáctico $\lr$}\\
   \[
   \begin{array}{c|c|c|c||c}
-    & \multicolumn{3}{c||}{\text{Acción}} & \text{GOTO} \\ \hline
+    & \multicolumn{3}{c||}{\textbf{acción}} & \textbf{goto} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{\$} & \nt{A} \\ \hline
     0 & r2 &    & r2 & 1 \\ \hline
     1 & d2 &    & \text{aceptar} &   \\ \hline
@@ -1597,12 +1722,14 @@
   \end{array}
   \]
   Cada reducción va solo en las columnas de su lookahead. Por ejemplo, $\nt{A}\to\eps$ en $I_0$ (lookahead
-  $\tk{\$}/\tk{(}$) no se coloca en \tk{)}, y en $I_2$ (lookahead $\tk{)}/\tk{(}$) no se coloca en \tk{\$}.
-  Ninguna celda tiene más de una acción, así que la gramática 2 es $\lr$.
+  $\tk{\$}/\tk{(}$) no se coloca en \tk{)}, y en $I_2$ (lookahead $\tk{)}/\tk{(}$) no se coloca en \tk{\$}.\\
+  
+  Ninguna celda tiene más de una acción, por lo que la gramática 2 es $\lr$.
 
   \bigskip
-
-  \textbf{\large c. AFD de ítems $\lalr$}\\
+  \bigskip
+  
+  \textbf{\large c. AFD de elementos $\lalr$}\\
 
   \textbf{Paso 1. Estados con el mismo núcleo}
   \[
@@ -1627,23 +1754,25 @@
     I_{47} = I_4 \cup I_7 = \{\, & [\nt{A}\to\nt{A}\,\tk{(}\,\nt{A}\,\tk{)}\,\bullet,\ \tk{\$}/\tk{(}/\tk{)}]\,\}
   \end{aligned}
   \]
-
+  
+  \bigskip
+  
   \textbf{Paso 3. Transiciones del AFD $\lalr$}
   \[
   \begin{aligned}
-    \texttt{goto}(I_0,\nt{A}) &= I_1 & \texttt{goto}(I_1,\tk{(}) &= \boxed{I_{25}}\\[3pt]
-    \texttt{goto}(I_{25},\nt{A}) &= \boxed{I_{36}} & \texttt{goto}(I_{36},\tk{)}) &= \boxed{I_{47}}\\[3pt]
+    \texttt{goto}(I_0,\tx{A}) &= I_1 & \texttt{goto}(I_1,\tk{(}) &= \boxed{I_{25}}\\[3pt]
+    \texttt{goto}(I_{25},\tx{A}) &= \boxed{I_{36}} & \texttt{goto}(I_{36},\tk{)}) &= \boxed{I_{47}}\\[3pt]
     \texttt{goto}(I_{36},\tk{(}) &= I_{25} &&
   \end{aligned}
   \]
-  El AFD $\lalr$ tiene 5 estados: $I_0$, $I_1$, $I_{25}$, $I_{36}$, $I_{47}$ (igual que el AFD $\lrc$).
+  El AFD $\lalr$ tiene cinco estados $I_0$, $I_1$, $I_{25}$, $I_{36}$, $I_{47}$ (igual que el AFD $\lrc$).
 
-  \bigskip
-
+  \newpage
+  
   \textbf{\large d. Tabla de análisis sintáctico $\lalr$}\\
   \[
   \begin{array}{c|c|c|c||c}
-    & \multicolumn{3}{c||}{\text{Acción}} & \text{GOTO} \\ \hline
+    & \multicolumn{3}{c||}{\textbf{acción}} & \textbf{goto} \\ \hline
     \text{Estado} & \tk{(} & \tk{)} & \tk{\$} & \nt{A} \\ \hline
     0  & r2  &     & r2 & 1  \\ \hline
     1  & d25 &     & \text{aceptar} &    \\ \hline
@@ -1652,11 +1781,14 @@
     47 & r1  & r1  & r1 &    \\
   \end{array}
   \]
-  $I_0$ reduce $\nt{A}\to\eps$ solo en $\tk{(}$ y $\tk{\$}$, e $I_{25}$ solo en $\tk{(}$ y $\tk{)}$: el lookahead
-  del ítem $\nt{A}\to\bullet$ no cambió con la fusión. Solo $I_{47}$ amplió sus lookaheads a $\tk{\$}/\tk{(}/\tk{)}$,
-  y es el único ítem de ese estado, así que no hay conflicto: la gramática 2 es $\lalr$. Aquí la tabla
-  $\lalr$ difiere de la $\slr$ (que reduce $\nt{A}\to\eps$ en las tres columnas), pero ambas aceptan las mismas
-  cadenas.
+  $I_0$ reduce $\nt{A}\to\eps$ solo en $\tk{(}$ y $\tk{\$}$, e $I_{25}$ solo en $\tk{(}$ y $\tk{)}$, el lookahead
+  del elemento $\nt{A}\to\bullet$ no cambió con la fusión.\\
+  Solo $I_{47}$ amplió sus lookaheads a $\tk{\$}/\tk{(}/\tk{)}$, y es el único elemento de ese estado, así que
+  no hay conflicto.\\
+
+  Por lo tanto la gramática 2 es $\lalr$.\\
+  Aquí la tabla $\lalr$ difiere de la $\slr$ (que reduce $\nt{A}\to\eps$ en las tres columnas),
+  pero ambas aceptan las mismas cadenas.
 
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
