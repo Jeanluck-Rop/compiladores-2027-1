@@ -1,0 +1,4 @@
+Error semantico [14:16]:
+la variable 'f' no ha sido declarada.
+Error semantico [16:12]:
+la variable 'e' no ha sido declarada.

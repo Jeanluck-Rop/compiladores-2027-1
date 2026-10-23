@@ -1,0 +1,958 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float, enumitem, array, listings}
+\usepackage{geometry, amsmath, amssymb, amsthm}
+\usepackage{graphicx, xcolor, fancyhdr, fancyvrb}
+\usepackage[normalem]{ulem}
+\usepackage[hidelinks]{hyperref}
+
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+
+\newcommand{\minic}{
+  {M\footnotesize INI\normalsize C}
+}
+
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoCen}{Práctica 5}
+\newcommand{\encabezadoDer}{\textit{Análisis Semántico y Tabla de Símbolos}}
+
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[C]{\encabezadoCen}
+\fancyhead[R]{\encabezadoDer}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ========================================
+% CONFIGURACION Y COLORES LSTLISTINGS
+% ========================================
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{links}{HTML}{0D1894}
+
+\definecolor{backcolour}{rgb}{0.93, 0.93, 0.93}
+\definecolor{codegreen}{rgb}{0, 0.6, 0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0, 0.82}
+\definecolor{keywordcolor}{rgb}{0.5, 0.0, 0.5}
+\definecolor{codeorg}{HTML}{DB9400}
+\definecolor{linkblue}{HTML}{1A167A}
+\definecolor{redcolor}{HTML}{7A1805}
+\definecolor{greencolor}{HTML}{0E8F10}
+\definecolor{greeblucolor}{HTML}{0E6657}
+\definecolor{orgcolor}{HTML}{B86D00}
+\definecolor{highlightyellow}{HTML}{FFF176}
+\definecolor{boxgray}{HTML}{F2F2F2}
+\definecolor{borderblue}{HTML}{1A167A}
+
+% ========================================
+% CONFIGURACION LENGUAJES
+% ========================================
+\lstdefinestyle{modernc}{
+    language=C,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=tttt,
+    emph={int,uint32_t,char,double,float,unsigned,void,bool,struct,size_t,
+          Room, Client, pthread_mutex_t, NULL},
+    emphstyle=\color{codeorg}\bfseries
+}
+
+\setlength{\emergencystretch}{3em}
+
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Objetivo}
+% ================================================================
+
+\begin{quote}
+  En esta práctica agregamos al compilador de \minic{} la primera etapa del análisis semántico. Hasta la
+  Práctica 4 el compilador respondía \emph{¿qué elementos forman el programa?} y \emph{¿está sintácticamente
+  bien escrito?}; ahora también responde \emph{¿tiene sentido lo que está escrito?}. Un programa puede
+  cumplir la gramática y aun así usar una variable que nunca se declaró, o declarar dos veces el mismo
+  identificador en el mismo ámbito.\\
+
+  El analizador semántico no vuelve a leer el archivo fuente ni a pedir tokens: recorre el AST que produjo el
+  parser. En esta entrega no verificamos tipos de expresiones, compatibilidad de asignaciones ni condiciones
+  booleanas, y tampoco generamos código. Concretamente, el objetivo es:
+
+  \begin{enumerate}[label=\arabic*.]
+  \item Diseñar una tabla de símbolos que represente cada variable declarada
+  \item Implementar ámbitos anidados, con un ámbito global y uno nuevo por cada bloque
+  \item Verificar que toda variable se declare antes de usarse
+  \item Prohibir la redeclaración dentro del mismo ámbito y permitir el \emph{shadowing} entre ámbitos distintos
+  \item Reportar múltiples errores semánticos con línea y columna, sin detenerse en el primero
+  \item Distinguir los errores semánticos del programa fuente de los fallos internos (memoria)
+  \item Definir un único propietario para cada recurso y liberar la tabla sin fugas
+  \end{enumerate}
+\end{quote}
+
+\bigskip
+
+% ================================================================
+\section*{Evolución respecto de la Práctica 4}
+% ================================================================
+
+\subsection*{Módulos modificados o agregados}
+
+\begin{itemize}
+\item \texttt{symbol.h} y \texttt{symbol.c}: módulo nuevo con el tipo \texttt{Type}, la estructura
+  \texttt{Symbol} y sus funciones de creación y destrucción.
+\item \texttt{scope.h} y \texttt{scope.c}: módulo nuevo con la estructura \texttt{Scope}, una tabla hash
+  dinámica por ámbito y las operaciones de búsqueda e inserción dentro de un ámbito.
+\item \texttt{symbol\_table.h} y \texttt{symbol\_table.c}: módulo nuevo con la pila de ámbitos, la entrada y
+  salida de ámbitos, la búsqueda local y visible, la inserción y la destrucción.
+\item \texttt{semantic.h} y \texttt{semantic.c}: módulo nuevo con el analizador, el recorrido del AST y los
+  diagnósticos.
+\item \texttt{main.c}: después del parser ejecuta el análisis semántico y cambia la salida normal.
+\item \texttt{Makefile}: incorpora los archivos nuevos y las pruebas de esta práctica.
+\item \texttt{lexer}, \texttt{token}, \texttt{keywords}, \texttt{buffer\_manage}, \texttt{parser.c},
+  \texttt{grammar.c}, \texttt{ast.c} y \texttt{ast.h} se conservan sin cambios.
+\end{itemize}
+
+\subsection*{Arquitectura actualizada}
+
+\begin{verbatim}
+main
+ |
+ v
+Lexer ----> Parser ----> AST
+                          |
+                          v
+                  Semantic Analyzer
+                   |-- recorrido del arbol
+                   |-- manejo de scopes
+                   |-- insercion y busqueda de simbolos
+                   '-- diagnosticos
+                          |
+                          v
+                    Symbol Table
+                          |
+                          v
+                 Stack de Scopes (global -> ... -> actual)
+\end{verbatim}
+
+Cada módulo tiene una responsabilidad separada: el lexer reconoce tokens, el parser construye el AST, el
+analizador semántico decide si el árbol tiene sentido, y la tabla de símbolos solo almacena símbolos y
+administra ámbitos. La tabla no conoce las reglas del lenguaje: no imprime diagnósticos ni recorre el AST.
+
+\subsection*{Cambio de salida en \texttt{main.c}}
+
+A partir de esta práctica la salida normal es distinta:
+
+\begin{itemize}
+\item Programa válido: \texttt{stdout} contiene exactamente \texttt{Programa semanticamente correcto.} y el
+  código de salida es \texttt{0}.
+\item Errores léxicos, sintácticos o semánticos: \texttt{stdout} queda vacío, los diagnósticos van a
+  \texttt{stderr} y el código de salida es \texttt{1}.
+\item Uso incorrecto, error de entrada y salida o fallo interno de memoria: se informa por \texttt{stderr} y el
+  código de salida es \texttt{2}.
+\end{itemize}
+
+Ya no se imprimen el AST ni el mensaje \texttt{Programa sintacticamente correcto.} en la ejecución normal.
+Para no perder la herramienta de depuración, \texttt{ast\_print} se conserva y se activa con la bandera
+\texttt{--ast}, que reproduce exactamente la salida de la Práctica 4 y no ejecuta el análisis semántico. Así
+las pruebas de las prácticas anteriores siguen siendo utilizables.
+
+\begin{lstlisting}[style=modernc, caption={Flujo de \texttt{compile} en \texttt{main.c} (resumido).}]
+    result = parser_parse_program(&parser, &root);
+
+    switch (result) {
+    case PARSE_OK:
+        if (show_ast) { /* modo depuracion: comportamiento de la P4 */
+            printf("AST:\n");
+            ast_print(root);
+            printf("Programa sintacticamente correcto.\n");
+            exit_code = MINIC_EXIT_OK;
+        } else {
+            exit_code = analyze(root);
+        }
+        break;
+    case PARSE_INVALID:
+        exit_code = MINIC_EXIT_INVALID; /* no se corre el semantico */
+        break;
+    default:
+        exit_code = MINIC_EXIT_INTERNAL;
+        break;
+    }
+
+    ast_destroy(root);
+    parser_destroy(&parser);
+    lexer_destroy(&lexer);
+\end{lstlisting}
+
+\bigskip
+
+El orden de liberación es siempre el mismo: el analizador se destruye dentro de \texttt{analyze}, y después se
+liberan el AST, el parser y el lexer. Como el analizador no es propietario de los nodos del árbol, el orden
+entre el analizador y el AST no puede producir accesos inválidos.
+
+% ================================================================
+\section*{Diseño de la tabla de símbolos}
+% ================================================================
+
+\subsection*{Representación de un símbolo}
+
+Cada variable declarada se representa con la estructura \texttt{Symbol}:
+
+\begin{lstlisting}[style=modernc, caption={Estructura \texttt{Symbol} de \texttt{symbol.h}.}]
+typedef enum { TYPE_INT, TYPE_BOOL, TYPE_ERROR, TYPE_UNKNOWN } Type;
+
+typedef struct Symbol {
+    char *name;               /* copia propia */
+    Type type;
+    int scope_level;
+    int line;
+    int column;
+    ASTNode *declaration;     /* NO es propiedad del simbolo */
+    struct Symbol *next;      /* encadenamiento en el bucket */
+} Symbol;
+\end{lstlisting}
+
+\bigskip
+
+El símbolo conserva el nombre, el tipo declarado, el nivel de ámbito, la posición de la declaración y una
+referencia al nodo del AST donde se declaró. En esta práctica solo se registran \texttt{TYPE\_INT} y
+\texttt{TYPE\_BOOL}; \texttt{TYPE\_ERROR} y \texttt{TYPE\_UNKNOWN} quedan reservados para la verificación de
+tipos. El campo \texttt{next} se agregó a la estructura recomendada para poder encadenar los símbolos que
+caen en el mismo bucket de la tabla hash.
+
+\begin{itemize}
+\item \texttt{symbol\_create} reserva el símbolo y copia el nombre. Si cualquiera de las dos reservas falla,
+  libera lo que ya había reservado y devuelve \texttt{NULL}. El nombre es una copia propia, por lo que no
+  depende de la memoria del lexer ni del parser.
+\item \texttt{symbol\_destroy} libera el nombre y la estructura, acepta \texttt{NULL} y \textbf{nunca} libera
+  el nodo de declaración, porque ese nodo pertenece al AST.
+\end{itemize}
+
+La posición del símbolo es la que ya fija el AST de la Práctica 4: la declaración usa la posición del
+\emph{identificador} (no la de \texttt{int} o \texttt{bool}), de modo que \texttt{int x;} produce la posición
+\texttt{[1:4]}. Esto coincide con los diagnósticos que pide el enunciado.
+
+\subsection*{Estructura de un ámbito}
+
+\begin{lstlisting}[style=modernc, caption={Estructura \texttt{Scope} de \texttt{scope.h}.}]
+typedef struct Scope {
+    Symbol **buckets;
+    size_t bucket_count;
+    size_t symbol_count;
+    int level;
+    struct Scope *parent;
+} Scope;
+\end{lstlisting}
+
+\bigskip
+
+Cada ámbito guarda únicamente los símbolos declarados directamente en él, su nivel (el global es \texttt{0} y
+cada bloque suma uno respecto de su padre) y un apuntador a su ámbito exterior. Para almacenar los símbolos
+elegimos una tabla hash con encadenamiento:
+
+\begin{itemize}
+\item La función de dispersión es \texttt{djb2} sobre el nombre del identificador.
+\item Cada ámbito comienza con 16 buckets.
+\item Antes de insertar se verifica el factor de carga: si
+  \texttt{(symbol\_count + 1) * 4 > bucket\_count * 3}, es decir, si superaría 0.75, el arreglo de buckets
+  duplica su tamaño y todos los símbolos se redistribuyen (\emph{rehash}).
+\item Por tanto no existe un límite fijo de símbolos por ámbito, y las colisiones se resuelven con la lista
+  encadenada de cada bucket.
+\end{itemize}
+
+\begin{lstlisting}[style=modernc, caption={Crecimiento de la tabla hash en \texttt{scope.c}.}]
+static int
+scope_grow(Scope *scope)
+{
+    size_t new_count = scope->bucket_count * 2;
+    size_t i;
+    Symbol **nb = calloc(new_count, sizeof *nb);
+    if (nb == NULL)
+        return 0;
+    for (i = 0; i < scope->bucket_count; i++) {
+        Symbol *s = scope->buckets[i];
+        while (s != NULL) {
+            Symbol *next = s->next;
+            size_t idx = hash_name(s->name) % new_count;
+            s->next = nb[idx];
+            nb[idx] = s;
+            s = next;
+        }
+    }
+    free(scope->buckets);
+    scope->buckets = nb;
+    scope->bucket_count = new_count;
+    return 1;
+}
+\end{lstlisting}
+
+\bigskip
+
+El nuevo arreglo se reserva primero y el anterior solo se libera cuando la redistribución terminó, de modo que
+si la reserva falla la tabla original queda intacta. En ese caso \texttt{scope\_insert} devuelve un fallo
+interno y no un duplicado.
+
+\subsection*{La tabla de símbolos y la pila de ámbitos}
+
+\begin{lstlisting}[style=modernc, caption={Estructura \texttt{SymbolTable} de \texttt{symbol\_table.h}.}]
+typedef struct {
+    Scope *current_scope;
+    size_t scope_count;
+} SymbolTable;
+\end{lstlisting}
+
+\bigskip
+
+La pila de ámbitos se representa con la cadena de apuntadores \texttt{parent}: \texttt{current\_scope} es la
+cima y el ámbito global es la base (su \texttt{parent} es \texttt{NULL}). No se necesita un arreglo aparte, y
+entrar o salir de un ámbito solo mueve un apuntador.
+
+\subsection*{Códigos de resultado}
+
+Las operaciones que pueden fallar distinguen entre éxito, duplicado y fallo interno:
+
+\begin{lstlisting}[style=modernc, caption={Códigos de resultado de la tabla y del analizador.}]
+typedef enum {
+    ST_OK,              /* operacion correcta */
+    ST_DUPLICATE,       /* el nombre ya existe en el ambito actual */
+    ST_INTERNAL_ERROR,  /* fallo de memoria o estado invalido */
+    ST_AT_GLOBAL        /* se intento salir del ambito global */
+} SymbolTableResult;
+
+typedef enum {
+    SEM_OK,             /* sin errores semanticos */
+    SEM_ERRORS,         /* errores semanticos en el programa fuente */
+    SEM_INTERNAL_ERROR  /* fallo interno; analisis detenido */
+} SemanticResult;
+\end{lstlisting}
+
+\bigskip
+
+Esta separación es importante: un duplicado es un error del programa fuente que se puede recuperar y acumular,
+mientras que un fallo de memoria es un error interno que detiene el análisis. Con un único código de error no
+habría forma de evitar que un \texttt{malloc} fallido se reportara como una redeclaración.
+
+\subsection*{Operaciones de la tabla}
+
+\begin{itemize}
+\item \texttt{symbol\_table\_init}: deja la tabla en un estado seguro (sin ámbito y con contador en cero) antes
+  de reservar el ámbito global. Si la reserva falla, la tabla queda en un estado que \texttt{destroy} puede
+  procesar sin riesgo.
+\item \texttt{symbol\_table\_enter\_scope}: crea un ámbito hijo del actual y solo lo convierte en el ámbito
+  vigente si la reserva terminó bien. Si falla, \texttt{current\_scope} no cambia.
+\item \texttt{symbol\_table\_exit\_scope}: restaura el ámbito padre y libera el ámbito abandonado. Rechaza la
+  salida del ámbito global devolviendo \texttt{ST\_AT\_GLOBAL}.
+\item \texttt{symbol\_table\_lookup\_current}: busca únicamente en el ámbito actual.
+\item \texttt{symbol\_table\_lookup}: búsqueda visible, del ámbito actual hacia el global.
+\item \texttt{symbol\_table\_insert}: inserta solo en el ámbito actual y devuelve \texttt{ST\_OK},
+  \texttt{ST\_DUPLICATE} o \texttt{ST\_INTERNAL\_ERROR}.
+\item \texttt{symbol\_table\_destroy}: libera todos los ámbitos que todavía pertenecen a la tabla, desde el
+  actual hasta el global, y es segura tras una inicialización incompleta.
+\end{itemize}
+
+\subsection*{Búsqueda local y búsqueda visible}
+
+Son dos operaciones distintas con dos propósitos distintos:
+
+\begin{itemize}
+\item La \textbf{búsqueda local} (\texttt{lookup\_current}) revisa solo el ámbito actual y no consulta los
+  exteriores. Se usa al \emph{declarar}, para detectar redeclaraciones.
+\item La \textbf{búsqueda visible} (\texttt{lookup}) revisa el ámbito actual y, si no encuentra el nombre,
+  sigue con el padre hasta llegar al global. Devuelve \texttt{NULL} si el identificador no existe en ninguno.
+  Se usa al \emph{usar} un identificador, para validar que esté declarado.
+\end{itemize}
+
+\begin{lstlisting}[style=modernc, caption={Búsqueda visible en \texttt{symbol\_table.c}.}]
+Symbol *
+symbol_table_lookup(SymbolTable *table, const char *name)
+{
+    Scope *s;
+    if (table == NULL)
+        return NULL;
+    for (s = table->current_scope; s != NULL; s = s->parent) {
+        Symbol *found = scope_lookup(s, name);
+        if (found != NULL)
+            return found;
+    }
+    return NULL;
+}
+\end{lstlisting}
+
+\bigskip
+
+Como la búsqueda avanza del ámbito más interno al más externo, el primer símbolo encontrado es siempre el de
+la declaración más cercana. Eso es lo que implementa el \emph{shadowing}.
+
+% ================================================================
+\section*{Propiedad y liberación de memoria}
+% ================================================================
+
+Definimos un único propietario para cada recurso:
+
+\begin{itemize}
+\item \textbf{El símbolo} es propietario de la copia de su nombre. No es propietario del nodo de declaración
+  del AST: \texttt{symbol\_destroy} nunca lo libera.
+\item \textbf{El ámbito} es propietario de sus símbolos y de su arreglo de buckets.
+\item \textbf{La tabla} es propietaria de los ámbitos que forman la pila vigente.
+\item \textbf{El analizador} es propietario de la tabla, pero \emph{no} del AST: el árbol sigue perteneciendo a
+  \texttt{main.c}, que lo libera con \texttt{ast\_destroy}.
+\item \textbf{Inserción:} la tabla adquiere el símbolo únicamente si \texttt{symbol\_table\_insert} devuelve
+  \texttt{ST\_OK}. En cualquier otro caso, quien llamó conserva la responsabilidad de liberarlo.
+\end{itemize}
+
+\subsection*{Estrategia de liberación de ámbitos}
+
+Elegimos la \textbf{liberación inmediata}: al salir de un ámbito se destruyen sus símbolos y su arreglo de
+buckets. Esta estrategia es válida en esta práctica porque el AST no guarda referencias a los símbolos
+(\texttt{Symbol *}); la asociación entre usos y declaraciones se resuelve durante el recorrido y no se
+conserva después. Además, deja la tabla con tamaño proporcional al anidamiento actual y no al del programa
+completo.
+
+Si en la Práctica 6 el verificador de tipos anotara el AST con apuntadores a símbolos, esta estrategia tendría
+que cambiar: los ámbitos retirados deberían moverse a una lista de ámbitos conservados y liberarse hasta
+\texttt{symbol\_table\_destroy}, para no dejar apuntadores colgantes. Dejamos esta decisión documentada en un
+comentario de \texttt{symbol\_table.c}.
+
+\begin{lstlisting}[style=modernc, caption={Salida de un ámbito.}]
+SymbolTableResult
+symbol_table_exit_scope(SymbolTable *table)
+{
+    Scope *old;
+    if (table == NULL || table->current_scope == NULL)
+        return ST_INTERNAL_ERROR;
+    if (table->current_scope->parent == NULL)
+        return ST_AT_GLOBAL;
+    old = table->current_scope;
+    table->current_scope = old->parent;
+    table->scope_count--;
+    scope_destroy(old);
+    return ST_OK;
+}
+\end{lstlisting}
+
+% ================================================================
+\section*{Recorrido del AST}
+% ================================================================
+
+\subsection*{Estructura del analizador}
+
+\begin{lstlisting}[style=modernc, caption={Estructura \texttt{SemanticAnalyzer} de \texttt{semantic.h}.}]
+typedef struct {
+    SymbolTable symbol_table;
+    int error_count;
+    int had_internal_error;
+} SemanticAnalyzer;
+
+int semantic_analyzer_init(SemanticAnalyzer *analyzer);
+SemanticResult semantic_analyze(SemanticAnalyzer *analyzer,
+                                ASTNode *program);
+void semantic_analyzer_destroy(SemanticAnalyzer *analyzer);
+\end{lstlisting}
+
+\bigskip
+
+El analizador contabiliza los errores semánticos en \texttt{error\_count} y marca los fallos internos con
+\texttt{had\_internal\_error}, de modo que ambos se pueden distinguir. \texttt{semantic\_analyze} devuelve
+\texttt{SEM\_OK} si no hubo errores, \texttt{SEM\_ERRORS} si el programa fuente tiene errores semánticos y
+\texttt{SEM\_INTERNAL\_ERROR} si ocurrió un fallo interno.
+
+\subsection*{Funciones de visita}
+
+El recorrido es recursivo y está dividido en funciones pequeñas, una por categoría de nodo, en lugar de una
+sola función extensa. Todas son \texttt{static} dentro de \texttt{semantic.c}:
+
+\begin{itemize}
+\item \texttt{visit\_program}: recorre las sentencias en el orden en que aparecen y se detiene si hubo un
+  fallo interno. El ámbito global ya existe desde \texttt{semantic\_analyzer\_init}.
+\item \texttt{visit\_statement}: despacha según el tipo de nodo hacia la función correspondiente.
+\item \texttt{visit\_block}: entra a un ámbito, recorre las sentencias y sale.
+\item \texttt{visit\_variable\_declaration}: registra la variable y luego visita el inicializador.
+\item \texttt{visit\_assignment}: valida el destino y visita el valor.
+\item \texttt{visit\_print\_statement}, \texttt{visit\_if\_statement} y \texttt{visit\_while\_statement}:
+  visitan sus expresiones y sentencias hijas.
+\item \texttt{visit\_expression}: busca los identificadores dentro de expresiones binarias y unarias; los
+  literales no requieren búsqueda.
+\end{itemize}
+
+Las declaraciones no se insertan por adelantado: se procesan en el orden del programa, de modo que una
+declaración solo es visible después de haber sido recorrida. Por eso \texttt{x = 1; int x;} produce un error.
+
+\subsection*{Declaraciones}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{visit\_variable\_declaration} (resumida).}]
+    Symbol *prev = symbol_table_lookup_current(&a->symbol_table, name);
+
+    if (prev != NULL) {
+        /* No se sobrescribe el simbolo original. */
+        report_redeclaration(a, prev, node->line, node->column);
+    } else {
+        Symbol *sym = symbol_create(name, type_from_ast(...),
+            a->symbol_table.current_scope->level,
+            node->line, node->column, node);
+        if (sym == NULL) { report_internal_error(a); return; }
+        r = symbol_table_insert(&a->symbol_table, sym);
+        if (r != ST_OK) {          /* la tabla no adquirio el simbolo */
+            symbol_destroy(sym);
+            if (r == ST_INTERNAL_ERROR) {
+                report_internal_error(a);
+                return;
+            }
+        }
+    }
+    /* El simbolo ya es visible: int x = x; es valido. */
+    visit_expression(a, node->data.variable_declaration.initializer);
+\end{lstlisting}
+
+\bigskip
+
+Las decisiones de diseño relevantes son:
+
+\begin{itemize}
+\item La redeclaración se detecta con la búsqueda \emph{local}, por lo que declarar un nombre que existe solo
+  en un ámbito exterior es válido (shadowing).
+\item Ante una redeclaración, el símbolo original no se reemplaza. Esto es importante para la verificación de
+  tipos de la siguiente práctica, y lo comprobamos con una prueba propia: en
+  \texttt{int x; bool x; int x;} ambos errores señalan la declaración original en \texttt{[1:4]}; si el
+  símbolo se hubiera sobrescrito, el segundo error apuntaría a \texttt{[2:5]}.
+\item El símbolo se inserta \emph{antes} de visitar el inicializador. Siguiendo la regla de esta práctica
+  (``la variable es visible a partir del momento en que su declaración fue registrada''), \texttt{int x = x;}
+  no produce un error de variable no declarada. No se evalúa si el valor está inicializado.
+\item Aun cuando la declaración sea una redeclaración, el inicializador se sigue visitando para poder
+  detectar otros errores en la misma línea.
+\item Si un símbolo recién creado no puede insertarse, la función que lo creó lo libera, porque la tabla solo
+  adquiere símbolos insertados con \texttt{ST\_OK}.
+\end{itemize}
+
+\subsection*{Asignaciones, identificadores y expresiones}
+
+Una asignación busca su destino con la búsqueda visible y reporta un error si no existe, y después recorre
+la expresión del valor. Como el nodo de asignación ya guarda la posición del identificador destino,
+\texttt{x = 5;} se reporta en \texttt{[1:0]}. Cada nodo identificador que representa un uso se valida con
+una búsqueda visible; los identificadores que forman parte de una declaración no se validan como usos.
+
+Las expresiones se recorren solo para localizar identificadores. No se infiere ningún tipo ni se comprueba la
+compatibilidad entre el destino y el valor, tal como pide el enunciado: esa verificación corresponde a la
+siguiente práctica.
+
+\subsection*{Bloques}
+
+\begin{lstlisting}[style=modernc, caption={\texttt{visit\_block}.}]
+static void
+visit_block(SemanticAnalyzer *a, ASTNode *node)
+{
+    size_t i;
+
+    if (symbol_table_enter_scope(&a->symbol_table) != ST_OK) {
+        report_internal_error(a);
+        return;                    /* no se entro: no se sale */
+    }
+    for (i = 0; i < node->data.block.statements.count; i++) {
+        if (a->had_internal_error)
+            break;
+        visit_statement(a, node->data.block.statements.items[i]);
+    }
+    if (symbol_table_exit_scope(&a->symbol_table) != ST_OK)
+        report_internal_error(a);
+}
+\end{lstlisting}
+
+\bigskip
+
+La salida del ámbito se realiza siempre que la entrada tuvo éxito, incluso si se detectaron errores
+semánticos dentro del bloque. Si la entrada falla, no se llama a la salida, porque no hay ámbito que
+abandonar. Si ocurre un fallo interno dentro del bloque, el recorrido se detiene, el ámbito se abandona y el
+fallo se propaga.
+
+\subsection*{Condicionales y ciclos}
+
+Para \texttt{if} se recorren la condición, la rama verdadera y la rama falsa cuando existe; para
+\texttt{while}, la condición y el cuerpo. No se comprueba que la condición sea booleana. Solo los nodos
+\texttt{Block} crean ámbitos: una rama que es una sola sentencia sin llaves, como en
+\texttt{if (c) x = 1; else x = 2;}, se recorre en el ámbito vigente.
+
+% ================================================================
+\section*{Diagnósticos y recuperación}
+% ================================================================
+
+\subsection*{Formato de los errores}
+
+Los errores semánticos se envían a \texttt{stderr} con la categoría, la línea, la columna y una descripción que
+incluye el nombre del identificador. La columna usa la convención del lexer (desde 0), igual que los errores
+léxicos y sintácticos.
+
+\begin{itemize}
+\item \textbf{Variable no declarada:}
+\begin{verbatim}
+Error semantico [1:0]:
+la variable 'x' no ha sido declarada.
+\end{verbatim}
+\item \textbf{Redeclaración,} con referencia a la declaración anterior:
+\begin{verbatim}
+Error semantico [2:5]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+\end{verbatim}
+\end{itemize}
+
+\subsection*{Acumulación de errores}
+
+A diferencia de algunos errores sintácticos, un error semántico no impide seguir recorriendo el árbol. El
+analizador incrementa \texttt{error\_count}, reporta el diagnóstico y continúa, por lo que detecta varios
+errores en un mismo programa. Por ejemplo, para
+
+\begin{verbatim}
+x = 1;
+y = 2;
+int z;
+int z;
+print(w);
+\end{verbatim}
+
+se reportan cuatro errores: \texttt{x} y \texttt{y} no declaradas, la redeclaración de \texttt{z} y
+\texttt{w} no declarada. El orden de los diagnósticos es el del recorrido, que coincide con el del programa.
+
+\subsection*{Errores internos}
+
+Los fallos de memoria al reservar símbolos, cadenas o ámbitos son errores internos, no errores semánticos.
+\texttt{report\_internal\_error} imprime un diagnóstico por \texttt{stderr} y activa
+\texttt{had\_internal\_error}; los recorridos de programa y bloque revisan esa bandera antes de cada
+sentencia y se detienen de forma controlada. El resultado es \texttt{SEM\_INTERNAL\_ERROR}, el código de
+salida es \texttt{2} y los recursos adquiridos se liberan en \texttt{semantic\_analyzer\_destroy}. Nunca se
+informa una falla de memoria como redeclaración, porque \texttt{ST\_DUPLICATE} y \texttt{ST\_INTERNAL\_ERROR}
+son resultados distintos.
+
+% ================================================================
+\section*{Resultados y pruebas}\label{sec:resultados}
+% ================================================================
+
+\subsection*{Cambios en el \texttt{Makefile}}
+
+Respecto de la Práctica 4, el \texttt{Makefile} cambió en los siguientes puntos:
+
+\begin{itemize}
+
+\item Se agregaron los archivos \texttt{src/semantic/symbol.c}, \texttt{scope.c}, \texttt{symbol\_table.c} y
+\texttt{semantic.c} a la variable \texttt{SOURCES}, y \texttt{include/ast/*.h} e
+\texttt{include/semantic/*.h} a \texttt{HEADERS}, de modo que \texttt{make} recompile el ejecutable cuando
+cambia cualquiera de ellos.
+
+\item Se agregaron las variables que indican la ubicación de las pruebas públicas y propias de esta práctica:
+
+\begin{verbatim}
+PUBLIC_P5_INPUT_DIR = tests/public/p5/inputs
+PUBLIC_P5_EXPECTED_DIR = tests/public/p5/expected
+
+UNIT_SEMANTIC_INPUT_DIR = tests/unit_tests/semantic/inputs
+UNIT_SEMANTIC_EXPECTED_DIR = tests/unit_tests/semantic/expected
+\end{verbatim}
+
+\item Se agregó el objetivo \texttt{test-unit-semantic}, que usa la plantilla \texttt{run\_test\_dir} y se
+incluyó en \texttt{test-unit}. La plantilla compara siempre \texttt{stdout} con el archivo \texttt{.out} y,
+cuando existen, también \texttt{stderr} con el \texttt{.err} y el código de salida con el \texttt{.code}.
+
+\begin{verbatim}
+test-unit-semantic: $(TARGET)
+$(call run_test_dir,$(UNIT_SEMANTIC_INPUT_DIR),
+  $(UNIT_SEMANTIC_EXPECTED_DIR),,unit-semantic)
+\end{verbatim}
+
+\item Se agregó el objetivo \texttt{test-p5} para las pruebas públicas de la práctica, incluido en
+\texttt{test-cli}.
+
+\item Como la salida normal cambió, \texttt{test-unit-parser} y \texttt{test-unit-ast} ahora invocan el
+ejecutable con la bandera \texttt{--ast}, y los scripts de las pruebas públicas de las Prácticas 3 y 4
+también. De esta forma conservan sus archivos esperados sin modificarlos.
+
+\begin{verbatim}
+test-unit-ast: $(TARGET)
+$(call run_test_dir,$(UNIT_AST_INPUT_DIR),
+  $(UNIT_AST_EXPECTED_DIR),--ast,unit-ast)
+\end{verbatim}
+
+\end{itemize}
+
+\subsection*{Pruebas públicas de la Práctica 5}
+
+Al ejecutar las pruebas públicas proporcionadas, las 24 comprobaciones automáticas fueron aprobadas.
+
+\begin{verbatim}
+sh tests/public/p5/run_public_tests.sh ./minic
+[OK automatico] p01_empty
+[OK automatico] p02_literals
+[OK automatico] p03_declarations
+[OK automatico] p04_valid_use
+[OK automatico] p05_undeclared_assignment
+[OK automatico] p06_use_before_declaration
+[OK automatico] p07_global_redeclaration
+[OK automatico] p08_local_redeclaration
+[OK automatico] p09_nested_visibility
+[OK automatico] p10_out_of_scope
+[OK automatico] p11_shadowing
+[OK automatico] p12_sibling_scopes
+[OK automatico] p13_sibling_visibility
+[OK automatico] p14_initializer_use
+[OK automatico] p15_self_initializer
+[OK automatico] p16_multiple_errors
+[OK automatico] p17_condition_uses
+[OK automatico] p18_if_else
+[OK automatico] p19_while
+[OK automatico] p20_types_deferred
+[OK automatico] p21_syntax_error
+[OK automatico] p22_lexical_error
+[OK automatico] p23_expression_uses
+[OK automatico] p24_empty_blocks
+
+Comprobaciones automaticas: 24 aprobadas, 0 fallidas.
+Casos que requieren revisar diagnosticos: 12.
+\end{verbatim}
+
+El script marca doce casos como \emph{REVISAR}, pues sus diagnósticos deben compararse contra
+\texttt{expected/CASOS.md}. Revisamos manualmente cada uno y los mensajes coinciden. Por ejemplo, en
+\texttt{p07\_global\_redeclaration} el diagnóstico es:
+
+\begin{verbatim}
+Error semantico [2:5]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+\end{verbatim}
+
+y en \texttt{p16\_multiple\_errors} se reportan, en orden, los cuatro errores esperados (\texttt{[1:0]},
+\texttt{[2:0]}, \texttt{[4:4]} con declaración anterior en \texttt{[3:4]}, y \texttt{[5:6]}). Los casos
+\texttt{p21\_syntax\_error} y \texttt{p22\_lexical\_error} comprueban que, ante un error sintáctico o léxico,
+el análisis semántico no se ejecuta y se conserva el diagnóstico de la etapa correspondiente.
+
+\subsection*{Pruebas propias del analizador semántico}
+
+Además de las pruebas públicas, diseñamos 40 pruebas propias, con el mismo esquema de las pruebas del AST:
+cada programa \texttt{.mc} tiene su salida estándar esperada (\texttt{.out}), sus diagnósticos esperados
+(\texttt{.err}) y su código de salida (\texttt{.code}). Se organizaron en \texttt{tests/unit\_tests/semantic/}
+con los prefijos \texttt{ut\_sem\_}.
+
+Para no calcular los archivos esperados a mano, escribimos un modelo de referencia independiente de la
+implementación en C (un analizador léxico y un recorrido con pila de ámbitos) y generamos los \texttt{.err}
+con él. Antes de usarlo lo validamos contra seis casos de los ejemplos públicos
+(\texttt{p07}, \texttt{p08}, \texttt{p14}, \texttt{p16}, \texttt{p17} y \texttt{p23}), con resultados idénticos.
+De este modo las pruebas comparan la implementación en C contra un modelo distinto.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|p{3.4cm}|p{12cm}|}
+\hline
+\textbf{Tema} & \textbf{Casos} \\ \hline
+Básicos & \texttt{empty}, \texttt{no\_declarations}, \texttt{one\_global}, \texttt{multiple\_globals} \\ \hline
+Declaración y uso & \texttt{use\_after\_declaration}, \texttt{use\_before\_declaration},
+  \texttt{undeclared\_completely}, \texttt{assignment\_target}, \texttt{expression\_use},
+  \texttt{print\_use}, \texttt{condition\_use}, \texttt{statement\_order} \\ \hline
+Redeclaración & \texttt{global\_redeclaration}, \texttt{block\_redeclaration},
+  \texttt{redeclaration\_other\_type}, \texttt{redeclaration\_keeps\_original},
+  \texttt{redeclaration\_initializer}, \texttt{long\_identifier\_redecl} \\ \hline
+Shadowing y visibilidad & \texttt{shadow\_global}, \texttt{shadow\_multilevel}, \texttt{outer\_access},
+  \texttt{global\_from\_nested}, \texttt{initializer\_uses}, \texttt{self\_initializer} \\ \hline
+Salida de ámbito & \texttt{out\_of\_scope}, \texttt{out\_of\_scope\_nested},
+  \texttt{sibling\_visibility}, \texttt{while\_local\_escape} \\ \hline
+Bloques y control & \texttt{empty\_blocks}, \texttt{sibling\_blocks}, \texttt{if\_scopes},
+  \texttt{if\_else\_valid}, \texttt{while\_locals}, \texttt{if\_without\_blocks\_ok},
+  \texttt{deep\_nesting} \\ \hline
+Recuperación & \texttt{multiple\_errors}, \texttt{errors\_inside\_blocks} \\ \hline
+Estrés & \texttt{many\_symbols}, \texttt{many\_symbols\_redecl}, \texttt{long\_identifiers} \\ \hline
+\end{tabular}
+\caption{Casos propios de \texttt{tests/unit\_tests/semantic/inputs}, todos con prefijo \texttt{ut\_sem\_}.}
+\end{table}
+
+Algunos casos merecen explicación:
+
+\begin{itemize}
+\item \texttt{redeclaration\_keeps\_original} comprueba que una redeclaración no reemplaza al símbolo
+  original: con \texttt{int x; bool x; int x;}, ambos errores deben apuntar a la declaración anterior
+  \texttt{[1:4]}.
+\item \texttt{many\_symbols} declara 300 variables globales y vuelve a declarar la mitad en un bloque, lo que
+  obliga a la tabla hash a hacer varios \emph{rehash} y a resolver colisiones. \texttt{many\_symbols\_redecl}
+  agrega una redeclaración de \texttt{v150} y verifica que la tabla la detecte entre cientos de símbolos.
+\item \texttt{long\_identifiers} usa identificadores de 100 caracteres, para comprobar que el nombre se copia
+  completo.
+\item \texttt{statement\_order} verifica que las sentencias se procesan en orden: usar una variable antes de
+  su declaración es un error, aunque la declaración aparezca después.
+\item \texttt{errors\_inside\_blocks} y \texttt{multiple\_errors} verifican que el análisis continúa tras el
+  primer error y que el ámbito se abandona correctamente aunque haya errores dentro.
+\end{itemize}
+
+\subsubsection*{Ejecución de las pruebas}
+
+El sistema ejecuta cada archivo \texttt{.mc} y compara la salida estándar, los diagnósticos y el código de
+salida contra los archivos esperados. Una prueba se considera correcta solo si los tres coinciden.
+
+\begin{verbatim}
+[❯ make test-unit-semantic 
+==== unit-semantic ====
+PASS: ut_sem_assignment_target
+PASS: ut_sem_block_redeclaration
+PASS: ut_sem_condition_use
+PASS: ut_sem_deep_nesting
+PASS: ut_sem_empty_blocks
+PASS: ut_sem_empty
+PASS: ut_sem_errors_inside_blocks
+PASS: ut_sem_expression_use
+PASS: ut_sem_global_from_nested
+PASS: ut_sem_global_redeclaration
+PASS: ut_sem_if_else_valid
+PASS: ut_sem_if_scopes
+PASS: ut_sem_if_without_blocks_ok
+PASS: ut_sem_initializer_uses
+PASS: ut_sem_long_identifier_redecl
+PASS: ut_sem_long_identifiers
+PASS: ut_sem_many_symbols
+PASS: ut_sem_many_symbols_redecl
+PASS: ut_sem_multiple_errors
+PASS: ut_sem_multiple_globals
+PASS: ut_sem_no_declarations
+PASS: ut_sem_one_global
+PASS: ut_sem_outer_access
+PASS: ut_sem_out_of_scope
+PASS: ut_sem_out_of_scope_nested
+PASS: ut_sem_print_use
+PASS: ut_sem_redeclaration_initializer
+PASS: ut_sem_redeclaration_keeps_original
+PASS: ut_sem_redeclaration_other_type
+PASS: ut_sem_self_initializer
+PASS: ut_sem_shadow_global
+PASS: ut_sem_shadow_multilevel
+PASS: ut_sem_sibling_blocks
+PASS: ut_sem_sibling_visibility
+PASS: ut_sem_statement_order
+PASS: ut_sem_undeclared_completely
+PASS: ut_sem_use_after_declaration
+PASS: ut_sem_use_before_declaration
+PASS: ut_sem_while_local_escape
+PASS: ut_sem_while_locals
+----
+Total: 40  Pass: 40  Fail: 0]
+\end{verbatim}
+
+% ================================================================
+\section*{Problemas encontrados}\label{sec:problemas}
+% ================================================================
+
+\subsection*{Las pruebas de la Práctica 4 dejaron de pasar}
+
+Al cambiar la salida normal, la mayoría de las pruebas de la Práctica 4 fallaron: esperaban \texttt{AST:}, el
+árbol y \texttt{Programa sintacticamente correcto.}, pero el programa ahora imprime
+\texttt{Programa semanticamente correcto.}. Solo seguían pasando los casos con errores léxicos o sintácticos,
+cuya salida no cambió. No era un error del compilador sino una consecuencia esperada del enunciado.
+Lo resolvimos conservando la salida anterior bajo la bandera \texttt{--ast} y haciendo que los scripts y los
+objetivos del \texttt{Makefile} de las prácticas anteriores la usen.
+
+\subsection*{Duplicado frente a fallo interno}
+
+Una primera idea es que la inserción devuelva solo ``éxito'' o ``fallo''. Con ese diseño, un \texttt{malloc}
+fallido durante el \emph{rehash} se habría interpretado como una redeclaración. Por eso usamos tres
+resultados distintos (\texttt{ST\_OK}, \texttt{ST\_DUPLICATE}, \texttt{ST\_INTERNAL\_ERROR}), y establecimos
+que la tabla solo adquiere el símbolo cuando devuelve \texttt{ST\_OK}.
+
+\subsection*{Propiedad del símbolo en la inserción}
+
+Como la tabla no adquiere el símbolo cuando la inserción falla, \texttt{visit\_variable\_declaration} debe
+liberarlo en esa ruta. Olvidarlo habría producido una fuga justo en el caso de un error poco frecuente, que
+las pruebas normales no recorren.
+
+\subsection*{Posición de la declaración}
+
+Los diagnósticos del enunciado esperan que una declaración se reporte en la posición del identificador y no
+en la de \texttt{int}. Revisamos \texttt{parse\_declaration} y confirmamos que, desde la Práctica 4, el nodo
+ya almacenaba la posición del identificador, por lo que no fue necesario modificar el parser.
+
+\subsection*{Límite por anidamiento profundo}
+
+Como en las prácticas anteriores, el recorrido recursivo consume pila en proporción al anidamiento. Una
+entrada con una cantidad extrema de bloques anidados puede agotarla. No agregamos un límite de profundidad y
+lo dejamos registrado como limitación conocida.
+
+% ================================================================
+\section*{Conclusiones}
+% ================================================================
+Esta práctica nos mostró que el análisis semántico es, en gran parte, una cuestión de recordar lo que se ha
+visto mientras se recorre el árbol. El AST de la práctica anterior ya tenía toda la información necesaria
+(nombres, posiciones y estructura de bloques), así que no tuvimos que modificar el lexer, el parser ni el
+árbol: el cambio se concentró en cuatro módulos nuevos y en \texttt{main.c}. Eso confirma que separar el
+lexer, el parser y el AST nos permitió agregar una etapa nueva sin tocar las anteriores.\\
+
+La pila de ámbitos resuelve de una sola vez la visibilidad, la salida de ámbito y el \emph{shadowing}. La
+búsqueda avanza del ámbito más interno al global, por lo que siempre se encuentra la declaración más
+cercana, y al abandonar un bloque sus símbolos desaparecen sin ningún tratamiento adicional. La diferencia
+entre la búsqueda local, para declarar, y la búsqueda visible, para usar, es lo que permite al mismo tiempo
+prohibir la redeclaración en el mismo ámbito y permitirla en ámbitos distintos.\\
+
+La parte más delicada fue, de nuevo, la propiedad de la memoria. Definir que la tabla adquiere el símbolo solo
+si la inserción termina con \texttt{ST\_OK}, que el símbolo no es propietario del nodo del AST y que el
+analizador no es propietario del árbol nos obligó a razonar sobre cada ruta de error. También fue útil separar
+los errores semánticos, que se acumulan, de los fallos internos, que detienen el análisis de forma controlada.
+Con esa distinción, el compilador nunca presenta un fallo de memoria como un error del programa fuente.\\
+
+Las pruebas propias nos dieron una verificación independiente. Al generar los resultados esperados con un modelo
+de referencia distinto de la implementación en C, evitamos que un mismo error de comprensión estuviera en ambos
+lados. La tabla de símbolos conserva ya el tipo declarado de cada variable y la declaración original después de
+una redeclaración, por lo que la siguiente práctica podrá apoyarse en ella para inferir y verificar tipos.
+Como limitación, el diseño sigue siendo recursivo y la liberación inmediata de ámbitos tendrá que revisarse
+si el AST se anota con apuntadores a símbolos.
+
+% ================================================================
+\section*{División del trabajo}
+% ================================================================
+
+% ================================================================
+\section*{Uso de herramientas de Inteligencia Artificial}
+% ================================================================
+
+
+\begin{thebibliography}{99}
+\bibitem{ref1}
+  cppreference.com. (n.d.). C language. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+
+\bibitem{ref2}
+  cppreference.com. (n.d.). C11. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+
+\bibitem{ref3}
+  Free Software Foundation. (n.d.). GNU make. Disponible en
+  \textcolor{links}{\uline{\url{https://www.gnu.org/software/make/manual/make.html}}}
+\end{thebibliography}
+
+\end{document}

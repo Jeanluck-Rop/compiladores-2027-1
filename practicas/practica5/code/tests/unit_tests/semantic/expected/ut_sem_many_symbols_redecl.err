@@ -1,0 +1,6 @@
+Error semantico [301:4]:
+la variable 'v150' ya fue declarada
+en este ambito.
+Declaracion anterior [151:4].
+Error semantico [303:0]:
+la variable 'v999' no ha sido declarada.

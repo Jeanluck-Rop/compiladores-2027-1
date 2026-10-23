@@ -1,0 +1,4 @@
+Error semantico [3:8]:
+la variable 'contador' ya fue declarada
+en este ambito.
+Declaracion anterior [2:8].

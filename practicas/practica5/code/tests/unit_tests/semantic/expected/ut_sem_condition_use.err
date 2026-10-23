@@ -1,0 +1,4 @@
+Error semantico [4:4]:
+la variable 'nope' no ha sido declarada.
+Error semantico [6:13]:
+la variable 'gone' no ha sido declarada.
