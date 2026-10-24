@@ -80,6 +80,9 @@
   fue necesario modificar el parser.
 
 
+-------------------------------------------
+
+
 ## [Práctica 4] 03-10-2026
 
 ### Agregados
@@ -131,6 +134,9 @@
   lista.
 - El `printf` del mensaje de éxito dentro del `switch` de `main.c`, que lo duplicaba al agregar la
   impresión del AST.
+
+
+-------------------------------------------
 
 
 ## [Práctica 3] 26-09-2026
@@ -188,7 +194,10 @@
 - `lexer_scan` y `emit_token`.
 - La impresión de tokens como efecto secundario de solicitar un token.
 - Copia sobrante de `ut_slashes.mc` en el directorio `expected/` de las pruebas del lexer.
- 
+
+
+-------------------------------------------
+
 
 ## [Práctica 2] 11-09-2026
 
@@ -224,6 +233,9 @@
 ### Eliminados
 - Prueba unitaria `p_double_char` de la Práctica 1 (verificaba que `==` se leyera como dos `ASSIGN`;
   ese comportamiento ya no es correcto en la Práctica 2).
+
+
+-------------------------------------------
 
 
 ## [Práctica 1] 05-09-2026

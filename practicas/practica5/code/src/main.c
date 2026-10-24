@@ -1,27 +1,14 @@
-#include "lexer/lexer.h"
-#include "parser/parser.h"
-#include "ast/ast.h"
-#include "semantic/semantic.h"
-
 #include <stdio.h>
 #include <string.h>
-
-#define MINIC_EXIT_OK 0       /* programa correcto / tokens impresos */
-#define MINIC_EXIT_INVALID 1  /* errores lexicos o sintacticos */
-#define MINIC_EXIT_INTERNAL 2 /* uso incorrecto, E/S o memoria */
-
 
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "ast/ast.h"
 #include "semantic/semantic.h"
 
-#include <stdio.h>
-#include <string.h>
-
-#define MINIC_EXIT_OK 0       /* programa correcto / tokens impresos */
-#define MINIC_EXIT_INVALID 1  /* errores lexicos, sintacticos o semanticos */
-#define MINIC_EXIT_INTERNAL 2 /* uso incorrecto, E/S o memoria */
+#define MINIC_EXIT_OK 0       //programa correcto / tokens impresos
+#define MINIC_EXIT_INVALID 1  //errores lexicos, sintacticos o semanticos
+#define MINIC_EXIT_INTERNAL 2 //uso incorrecto, E/S o memoria
 
 /* Ejecuta el analisis semantico sobre el AST ya construido */
 static int
@@ -41,7 +28,7 @@ analyze(ASTNode *root)
         printf("Programa semanticamente correcto.\n");
         return MINIC_EXIT_OK;
     case SEM_ERRORS:
-        return MINIC_EXIT_INVALID;   /* diagnosticos ya enviados a stderr */
+        return MINIC_EXIT_INVALID;   //diagnosticos ya enviados a stderr
     default:
         return MINIC_EXIT_INTERNAL;
     }
@@ -73,8 +60,8 @@ compile(FILE *file, int show_ast)
     switch (result) {
     case PARSE_OK:
         if (show_ast) {
-            /* Modo depuracion (--ast): comportamiento de la P4, sin
-             * analisis semantico. */
+            //Modo depuracion (--ast):
+            // comportamiento de la P4, sin  analisis semantico
             printf("AST:\n");
             ast_print(root);
             printf("Programa sintacticamente correcto.\n");
@@ -84,14 +71,14 @@ compile(FILE *file, int show_ast)
         }
         break;
     case PARSE_INVALID:
-        exit_code = MINIC_EXIT_INVALID;   /* no se corre el semantico */
+        exit_code = MINIC_EXIT_INVALID;   //no se corre el semantico
         break;
     default:
         exit_code = MINIC_EXIT_INTERNAL;
         break;
     }
 
-    ast_destroy(root);          /* acepta NULL */
+    ast_destroy(root);
     parser_destroy(&parser);
     lexer_destroy(&lexer);
     return exit_code;
