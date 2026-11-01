@@ -1,0 +1,8 @@
+Error semantico [4:8]:
+la variable 'a' ya fue declarada
+en este ambito.
+Declaracion anterior [3:8].
+Error semantico [5:4]:
+la variable 'q' no ha sido declarada.
+Error semantico [7:4]:
+la variable 'r' no ha sido declarada.

@@ -1,0 +1,4 @@
+Error semantico [2:5]:
+la variable 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
