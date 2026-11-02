@@ -1,0 +1,10 @@
+Error semantico [1:0]:
+la variable 'x' no ha sido declarada.
+Error semantico [2:0]:
+la variable 'y' no ha sido declarada.
+Error semantico [4:4]:
+la variable 'z' ya fue declarada
+en este ambito.
+Declaracion anterior [3:4].
+Error semantico [5:6]:
+la variable 'w' no ha sido declarada.

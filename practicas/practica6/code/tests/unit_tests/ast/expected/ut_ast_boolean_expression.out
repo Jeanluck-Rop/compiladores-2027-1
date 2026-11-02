@@ -1,0 +1,13 @@
+AST:
+Program
+  VariableDeclaration(bool, resultado)
+    Or
+      And
+        Greater
+          Integer(10)
+          Integer(5)
+        Less
+          Integer(3)
+          Integer(8)
+      Boolean(false)
+Programa sintacticamente correcto.

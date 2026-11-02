@@ -1,0 +1,4 @@
+Error semantico [1:13]:
+el operador '==' requiere operandos
+del mismo tipo, pero se encontraron
+'bool' y 'int'.

@@ -1,0 +1,14 @@
+Error semantico [2:4]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+Error semantico [2:8]:
+no es posible inicializar una variable
+de tipo 'int' con una expresion de tipo 'bool'.
+Error semantico [3:5]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+Error semantico [3:9]:
+no es posible inicializar una variable
+de tipo 'bool' con una expresion de tipo 'int'.

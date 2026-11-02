@@ -1,0 +1,12 @@
+Error semantico [1:11]:
+el operador '<' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'bool'.
+Error semantico [2:8]:
+el operador '<=' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+Error semantico [4:8]:
+el operador '>=' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.

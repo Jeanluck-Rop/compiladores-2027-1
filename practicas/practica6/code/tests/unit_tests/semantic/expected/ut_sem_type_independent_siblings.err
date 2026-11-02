@@ -1,0 +1,8 @@
+Error semantico [1:6]:
+el operador unario '-' requiere
+un operando de tipo 'int',
+pero se encontro 'bool'.
+Error semantico [1:21]:
+el operador '<' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'bool'.

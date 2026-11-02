@@ -1,0 +1,10 @@
+Error semantico [4:0]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [5:0]:
+no es posible asignar un valor de tipo 'int'
+a una variable de tipo 'bool'.
+Error semantico [7:8]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.

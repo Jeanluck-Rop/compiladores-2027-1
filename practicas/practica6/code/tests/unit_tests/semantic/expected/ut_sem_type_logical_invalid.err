@@ -1,0 +1,8 @@
+Error semantico [2:8]:
+el operador '&&' requiere operandos
+de tipo 'bool', pero se encontraron
+'int' y 'int'.
+Error semantico [3:13]:
+el operador '||' requiere operandos
+de tipo 'bool', pero se encontraron
+'bool' y 'int'.

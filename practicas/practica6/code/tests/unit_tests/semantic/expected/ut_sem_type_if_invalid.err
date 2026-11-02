@@ -1,0 +1,8 @@
+Error semantico [2:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [5:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.

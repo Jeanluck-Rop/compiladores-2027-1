@@ -1,0 +1,4 @@
+Error semantico [7:4]:
+la variable 'z' no ha sido declarada.
+Error semantico [9:0]:
+la variable 'y' no ha sido declarada.

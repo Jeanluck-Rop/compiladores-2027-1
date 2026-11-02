@@ -1,0 +1,19 @@
+Error semantico [2:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [3:4]:
+la variable 'ghost' no ha sido declarada.
+Error semantico [4:4]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [6:4]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [8:7]:
+la condicion de una sentencia 'while'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [9:4]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.

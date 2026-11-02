@@ -1,0 +1,1785 @@
+
+\documentclass[12pt,letterpaper]{article}
+ 
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float, enumitem, array, listings, longtable}
+\usepackage{geometry, amsmath, amssymb, amsthm}
+\usepackage{graphicx, xcolor, fancyhdr, fancyvrb}
+\usepackage[normalem]{ulem}
+\usepackage[hidelinks]{hyperref}
+ 
+\geometry{margin=2cm, top=2cm, bottom=2cm}
+ 
+\newcommand{\minic}{
+  {M\footnotesize INI\normalsize C}
+}
+ 
+% Marcador visible para lo que falta pegar antes de entregar
+\newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[PENDIENTE: #1]}}}
+ 
+% ========================================
+% CONSTANTES DEL ENCABEZADO
+% ========================================
+\newcommand{\encabezadoIzq}{Compiladores 2027-1}
+\newcommand{\encabezadoCen}{Práctica 6}
+\newcommand{\encabezadoDer}{\textit{Verificación de Tipos}}
+ 
+% ========================================
+% CONFIGURACION DEL ENCABEZADO
+% ========================================
+\pagestyle{fancy}
+\fancyhf{}
+ 
+\fancyhead[L]{\encabezadoIzq}
+\fancyhead[C]{\encabezadoCen}
+\fancyhead[R]{\encabezadoDer}
+ 
+\fancyfoot[C]{\thepage}
+ 
+\renewcommand{\headrulewidth}{0.1pt}
+\renewcommand{\footrulewidth}{0pt}
+ 
+% ========================================
+% CONFIGURACION Y COLORES LSTLISTINGS
+% ========================================
+\renewcommand{\lstlistingname}{Código}
+ 
+\definecolor{links}{HTML}{0D1894}
+ 
+\definecolor{backcolour}{rgb}{0.93, 0.93, 0.93}
+\definecolor{codegreen}{rgb}{0, 0.6, 0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0, 0.82}
+\definecolor{keywordcolor}{rgb}{0.5, 0.0, 0.5}
+\definecolor{codeorg}{HTML}{DB9400}
+\definecolor{linkblue}{HTML}{1A167A}
+\definecolor{redcolor}{HTML}{7A1805}
+\definecolor{greencolor}{HTML}{0E8F10}
+\definecolor{greeblucolor}{HTML}{0E6657}
+\definecolor{orgcolor}{HTML}{B86D00}
+\definecolor{highlightyellow}{HTML}{FFF176}
+\definecolor{boxgray}{HTML}{F2F2F2}
+\definecolor{borderblue}{HTML}{1A167A}
+ 
+% ========================================
+% CONFIGURACION LENGUAJES
+% ========================================
+\lstdefinestyle{modernc}{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordcolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=tttt,
+    emph={int,uint32_t,char,double,float,unsigned,void,bool,struct,size_t,
+          Type, Symbol, ASTNode, SemanticAnalyzer, NULL},
+    emphstyle=\color{codeorg}\bfseries
+}
+ 
+\setlength{\emergencystretch}{3em}
+ 
+\begin{document}
+
+\thispagestyle{empty}
+\input{portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ================================================================
+\section*{Objetivo}
+% ================================================================
+
+\begin{quote}
+  Hasta la Práctica 5 el compilador de \minic{} sabía responder \emph{¿qué elementos forman el programa?},
+  \emph{¿está bien escrito?} y \emph{¿cada nombre que se usa fue declarado y es visible?}, pero todavía hay
+  programas que pasan todas esas revisiones y que no tienen sentido. Pensemos en
+  \texttt{int x; bool activo; x = activo;}: cada token está en una posición válida, ambas variables existen
+  y no hay redeclaraciones, y aun así la asignación intenta guardar un booleano en una variable entera.
+  Solo el análisis de tipos puede concluir que esa asignación es incorrecta.\\
+
+  En esta práctica extendimos el analizador semántico para que determine el tipo de cada expresión y verifique
+  la compatibilidad de tipos en inicializaciones, asignaciones, operadores y condiciones. Como en las prácticas
+  anteriores, la entrada del verificador sigue siendo el AST, no vuelve a leer el archivo ni a consumir tokens,
+  y los tipos declarados los obtiene de la tabla de símbolos de la Práctica 5.
+  
+  Concretamente, nuestros objetivos fueron:
+
+  \begin{enumerate}[label=\arabic*.]
+  \item Representar los tipos de \minic{} (\texttt{int} y \texttt{bool}) con una representación común y una
+    función que produzca nombres legibles para los diagnósticos.
+  \item Determinar el tipo de literales, identificadores y expresiones compuestas, propagándolo de las hojas
+    hacia la raíz del árbol.
+  \item Verificar inicializaciones, asignaciones, los cuatro grupos de operadores binarios, la negación unaria y
+    las condiciones de \texttt{if} y \texttt{while}.
+  \item Reportar todas las incompatibilidades con línea, columna, operador o construcción involucrada, tipo
+    esperado y tipo encontrado.
+  \item Evitar los errores en cascada con \texttt{TYPE\_ERROR}, sin ocultar errores que sean independientes.
+  \item Conservar todo lo anterior (análisis léxico, sintáctico, ámbitos, \emph{shadowing}) y mantener un
+    único propietario para cada recurso, sin fugas de memoria.
+  \end{enumerate}
+\end{quote}
+
+\bigskip
+
+% ================================================================
+\section*{Evolución respecto de la Práctica 5}
+% ================================================================
+
+\subsection*{Módulos modificados o agregados}
+
+Antes de entrar en los detalles, veamos qué tocamos y qué dejamos igual:
+
+\begin{itemize}
+\item \texttt{type.h} y \texttt{type.c}: \textbf{módulos nuevos}. Contienen la enumeración \texttt{Type} (que
+  antes vivía en \texttt{symbol.h}), \texttt{type\_to\_string} y \texttt{types\_are\_compatible}.
+
+\item \texttt{type\_checker.h} y \texttt{type\_checker.c}: \textbf{módulos nuevos}. Son el verificador de tipos:
+  determinan el tipo de las expresiones, aplican las reglas de cada operador y comprueban inicializaciones,
+  asignaciones y condiciones.
+
+\item \texttt{semantic.h} y \texttt{semantic.c}: \textbf{modificados}. Siguen recorriendo las sentencias,
+  declarando símbolos y resolviendo nombres, pero ahora delegan la verificación de tipos al nuevo módulo en el
+  mismo recorrido. Además alojan los diagnósticos compartidos.
+
+\item \texttt{ast.h} y \texttt{ast.c}: \textbf{modificados}. Cada nodo tiene ahora un campo
+  \texttt{inferred\_type}, que nace en \texttt{TYPE\_UNKNOWN}.
+
+\item \texttt{symbol.h}: \textbf{modificado}. Ya no define \texttt{Type}; lo toma de \texttt{type.h}.
+
+\item \texttt{Makefile}: \textbf{modificado}. Incorpora los módulos nuevos y las pruebas públicas de esta
+  práctica, y retira las de las prácticas anteriores.
+
+\item \texttt{main.c}, el lexer, el parser, \texttt{scope.*}, \texttt{symbol.c} y \texttt{symbol\_table.*} se
+  conservan sin cambios.
+\end{itemize}
+
+Es decir, \textbf{extendimos la Práctica 5 sin cambiar \minic{}}: ninguna palabra reservada, regla gramatical ni
+estructura del AST (más allá del campo del tipo inferido) se modificó.
+
+\subsection*{Arquitectura actualizada}
+
+\begin{verbatim}
+main
+ |
+ v
+Lexer ----> Parser ----> AST
+                          |
+                          v
+                  Semantic Analyzer  (semantic.c)
+                   |-- recorrido de sentencias
+                   |-- declaraciones, ambitos y resolucion de nombres
+                   |-- diagnosticos compartidos
+                   |
+                   |   delega, en el mismo recorrido
+                   v
+                  Type Checker       (type_checker.c)   <- NUEVO
+                   |-- tipo de cada expresion
+                   |-- reglas por operador
+                   |-- inicializaciones, asignaciones, condiciones
+                   '-- propagacion de TYPE_ERROR
+                          |
+                          v
+                    Symbol Table  ---->  Type (type.c)
+\end{verbatim}
+
+Seguimos con la regla de siempre: cada módulo tiene una sola responsabilidad. El analizador semántico decide
+\emph{qué visitar y en qué orden}, y el verificador decide \emph{qué tipo tiene lo visitado}. La tabla de
+símbolos sigue sin conocer las reglas de tipos, solo guarda el tipo declarado de cada variable.
+
+\subsection*{Cambios en el AST}
+
+Para guardar el tipo calculado agregamos un único campo a \texttt{ASTNode}, y para poder usar el tipo
+\texttt{Type} dentro del árbol lo importamos desde \texttt{type.h}:
+
+\begin{lstlisting}[style=modernc, caption={Cambio en \texttt{ast.h}: el nodo guarda su tipo inferido.}]
+#include "semantic/type.h"  //Type (type.h no incluye nada del proyecto: sin ciclo)
+
+struct ASTNode {
+    ASTNodeType type;
+    int line;
+    int column;
+
+    // Tipo inferido por el verificador de tipos, todo nodo nace con TYPE_UNKNOWN
+    // Solo las expresiones reciben TYPE_INT, TYPE_BOOL o TYPE_ERROR
+    Type inferred_type;
+
+    union { /* ... sin cambios ... */ } data;
+};
+\end{lstlisting}
+
+\bigskip
+
+Un detalle que nos obligó a pensar los nodos se reservan con \texttt{calloc}, que deja todo en cero, y en
+nuestra enumeración el valor cero es \texttt{TYPE\_INT}. Sin ninguna corrección, \emph{todo} nodo habría nacido
+como si fuera entero. Por eso el constructor interno de nodos asigna explícitamente el valor inicial:
+
+\begin{lstlisting}[style=modernc, caption={Cambio en \texttt{alloc\_node} de \texttt{ast.c}.}]
+    node->type = type;
+    node->line = line;
+    node->column = column;
+    node->inferred_type = TYPE_UNKNOWN;  //calloc deja 0 == TYPE_INT
+\end{lstlisting}
+
+\bigskip
+
+Como \texttt{inferred\_type} es un valor (una enumeración) y no un apuntador, \texttt{ast\_destroy} no necesita
+ningún cambio.
+
+\subsection*{Cambios en \texttt{symbol.h} y en \texttt{semantic.h}}
+
+\texttt{ast.h} necesita \texttt{Type}, y \texttt{symbol.h} ya incluía a \texttt{ast.h}. Si \texttt{Type}
+hubiera seguido en \texttt{symbol.h}, tendríamos un ciclo de inclusión. La solución fue sacar \texttt{Type} a
+un encabezado propio, \texttt{type.h}, que no incluye ningún otro archivo del proyecto:
+
+\begin{lstlisting}[style=modernc, caption={Cambio en \texttt{symbol.h}: \texttt{Type} ya no se define aquí.}]
+#include "ast/ast.h"
+#include "semantic/type.h"  //Type ya no se define aqui (P6): vive en type.h
+
+typedef struct Symbol {
+    char *name;
+    Type type;
+    /* ... sin cambios ... */
+} Symbol;
+\end{lstlisting}
+
+\bigskip
+
+En \texttt{semantic.h} agregamos tres funciones de diagnóstico públicas, porque ahora las usan tanto
+\texttt{semantic.c} como \texttt{type\_checker.c}, así el conteo de errores y el formato de los mensajes viven
+en un solo lugar:
+
+\begin{lstlisting}[style=modernc, caption={Declaraciones nuevas en \texttt{semantic.h}.}]
+void semantic_report_error(SemanticAnalyzer *analyzer, int line, int column,
+                           const char *format, ...);
+void semantic_report_undeclared(SemanticAnalyzer *analyzer, const char *name,
+                                int line, int column);
+void semantic_report_internal_error(SemanticAnalyzer *analyzer);
+\end{lstlisting}
+
+% ================================================================
+\section*{Sistema de tipos de \minic{}}
+% ================================================================
+
+\subsection*{Los tipos del lenguaje y su representación interna}
+
+\minic{} usa tipado estático, el tipo de las variables y de las expresiones se determina durante la compilación,
+antes de ejecutar nada. Existen dos tipos de datos, \texttt{int} y \texttt{bool}, y los representamos con una
+enumeración común:
+
+\begin{lstlisting}[style=modernc, caption={Representación de los tipos en \texttt{type.h}.}]
+typedef enum {
+    TYPE_INT,
+    TYPE_BOOL,
+    TYPE_ERROR,
+    TYPE_UNKNOWN
+} Type;
+
+const char *type_to_string(Type type);
+int types_are_compatible(Type expected, Type actual);
+\end{lstlisting}
+
+\bigskip
+
+\begin{itemize}
+\item \texttt{TYPE\_INT} y \texttt{TYPE\_BOOL}: expresión o variable entera o booleana.
+\item \texttt{TYPE\_ERROR}: expresión cuyo análisis produjo un error semántico. Es lo que permite no repetir
+  diagnósticos (lo veremos en detalle más adelante).
+\item \texttt{TYPE\_UNKNOWN}: tipo todavía no determinado o no aplicable; es el valor inicial de todo nodo del
+  AST y también lo que devuelve el verificador para algo que no es una expresión.
+\end{itemize}
+
+\subsection*{Reglas de compatibilidad}
+
+La compatibilidad es \textbf{exacta}, un valor \texttt{int} solo puede asignarse a una variable \texttt{int} y
+un \texttt{bool} solo a una \texttt{bool}. No hay conversiones implícitas, y por lo mismo un entero distinto de
+cero \emph{no} es verdadero en una condición. La función \texttt{types\_are\_compatible} lo expresa en una línea;
+además, los dos tipos especiales nunca son compatibles con nada, para que un \texttt{TYPE\_ERROR} no se
+``acepte'' por accidente:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type.c} completo.}]
+#include "semantic/type.h"
+
+const char*
+type_to_string(Type type)
+{
+    switch (type) {
+    case TYPE_INT:
+        return "int";
+    case TYPE_BOOL:
+        return "bool";
+    case TYPE_ERROR:
+        return "error";
+    case TYPE_UNKNOWN:
+        return "unknown";
+    }
+    return "?";     //valor fuera del enum
+}
+
+int
+types_are_compatible(Type expected, Type actual)
+{
+    return expected == actual
+           && expected != TYPE_ERROR
+           && expected != TYPE_UNKNOWN;
+}
+\end{lstlisting}
+
+\bigskip
+
+Dos decisiones pequeñas \texttt{type\_to\_string} no tiene \texttt{default}, de modo que si algún día agregamos
+un tipo, el compilador nos avisa con \texttt{-Wswitch} que falta un caso; y si llegara un valor fuera de la
+enumeración devuelve \texttt{"?"} en lugar de un apuntador inválido.
+
+\subsection*{Reglas de tipos por construcción}
+
+Estas son las reglas que implementa el verificador, son exactamente las del enunciado:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|p{4.2cm}|p{4.6cm}|p{3.2cm}|p{3.2cm}|}
+\hline
+\textbf{Construcción} & \textbf{Operadores / forma} & \textbf{Operandos} & \textbf{Resultado} \\ \hline
+Literal entero & \texttt{42} & --- & \texttt{int} \\ \hline
+Literal booleano & \texttt{true}, \texttt{false} & --- & \texttt{bool} \\ \hline
+Identificador & \texttt{x} & --- & tipo de su símbolo visible \\ \hline
+Aritméticos & \texttt{+ - * /} & dos \texttt{int} & \texttt{int} \\ \hline
+Negación unaria & \texttt{-} & un \texttt{int} & \texttt{int} \\ \hline
+Relacionales & \texttt{< <= > >=} & dos \texttt{int} & \texttt{bool} \\ \hline
+Igualdad & \texttt{==  !=} & dos del mismo tipo & \texttt{bool} \\ \hline
+Lógicos & \texttt{\&\&  ||} & dos \texttt{bool} & \texttt{bool} \\ \hline
+Inicialización & \texttt{T x = e;} & \texttt{e} de tipo \texttt{T} & --- \\ \hline
+Asignación & \texttt{x = e;} & \texttt{e} del tipo de \texttt{x} & --- \\ \hline
+Condición & \texttt{if (c)}, \texttt{while (c)} & \texttt{c} de tipo \texttt{bool} & --- \\ \hline
+Impresión & \texttt{print(e);} & \texttt{e} válida, de cualquier tipo & --- \\ \hline
+\end{tabular}
+\caption{Reglas de tipos de \minic{}.}
+\end{table}
+
+Tampoco evaluamos nada el verificador solo mira tipos, por eso \texttt{10 / 0} no produce ningún diagnóstico en
+esta práctica, y \texttt{print} acepta cualquier expresión que sea semánticamente válida.
+
+% ================================================================
+\section*{El verificador de tipos}
+% ================================================================
+
+\subsection*{Estrategia para determinar el tipo de una expresión}
+
+Elegimos un recorrido \emph{ascendente} para conocer el tipo de un nodo primero obtenemos el tipo de sus hijos
+y después aplicamos la regla del operador. Con \texttt{5 < 2 + 3}, por ejemplo, los literales son \texttt{int},
+la suma recibe \texttt{int} e \texttt{int} y produce \texttt{int}, y la comparación recibe \texttt{int} e
+\texttt{int} y produce \texttt{bool}. Los tipos viajan de las hojas hacia la raíz.\\
+
+Además tomamos dos decisiones de diseño que vale la pena justificar:
+
+\begin{itemize}
+\item \textbf{Un solo recorrido.} Podríamos haber resuelto los nombres en una pasada y verificado los tipos en
+  otra. Pero el enunciado nos advierte que, con dos pasadas,no podemos consultar solo la tabla final aceptaríamos
+  usos anteriores a la declaración o elegiríamos el símbolo equivocado por culpa del \emph{shadowing}. En un
+  solo recorrido, cada uso se resuelve contra el ámbito que está vigente \emph{en ese momento}, y además un uso
+  no declarado se reporta una sola vez.
+
+\item \textbf{Los tipos se devuelven \emph{y} se almacenan.} \texttt{type\_check\_expression} devuelve el tipo
+  de la expresión, que es lo que el padre necesita de inmediato, y además lo guarda en
+  \texttt{node->inferred\_type}, que será útil en etapas posteriores. Solo las expresiones reciben tipo; las
+  sentencias conservan \texttt{TYPE\_UNKNOWN}.
+\end{itemize}
+
+\subsection*{Interfaz del verificador}
+
+\begin{lstlisting}[style=modernc, caption={Interfaz pública de \texttt{type\_checker.h}.}]
+typedef enum {
+    CONDITION_IF,
+    CONDITION_WHILE
+} ConditionKind;
+
+Type type_from_declared(ASTDeclaredType declared);
+Type type_check_expression(SemanticAnalyzer *analyzer, ASTNode *node);
+void type_check_initialization(SemanticAnalyzer *analyzer, ASTNode *declaration);
+void type_check_assignment(SemanticAnalyzer *analyzer, ASTNode *assignment,
+                           const Symbol *target);
+void type_check_condition(SemanticAnalyzer *analyzer, ASTNode *condition,
+                          ConditionKind kind);
+\end{lstlisting}
+
+\bigskip
+
+Fijémonos en la división de trabajo: \texttt{semantic.c} \emph{resuelve} el destino de una asignación y se lo
+pasa ya resuelto (\texttt{target}) al verificador, que solo compara tipos. Así la resolución de nombres de
+sentencias sigue siendo responsabilidad del analizador, y el verificador no tiene que volver a reportar una
+variable no declarada.\\
+
+El archivo \texttt{type\_checker.c} está organizado por propósito, lo recorremos completo en las siguientes
+secciones; todas las funciones auxiliares son \texttt{static}.
+
+\subsection*{Prototipos internos y utilidad de propagación}
+
+Empezamos con los prototipos del módulo, que ya muestran su estructura: una función de visita por tipo de
+expresión (\texttt{visit\_*}), una regla por categoría de operador (\texttt{check\_*}) y una función por tipo
+de diagnóstico (\texttt{report\_*}). Así evitamos concentrar todas las responsabilidades en una función extensa.
+También aparece \texttt{is\_undetermined}, la utilidad clave de la propagación, y \texttt{type\_from\_declared},
+que traduce el tipo escrito en una declaración al tipo interno.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: prototipos, \texttt{type\_from\_declared} e \texttt{is\_undetermined}.}]
+#include "semantic/type_checker.h"
+
+static int is_undetermined(Type type);
+
+static Type visit_identifier(SemanticAnalyzer *a, ASTNode *node);
+static Type visit_integer_literal(SemanticAnalyzer *a, ASTNode *node);
+static Type visit_boolean_literal(SemanticAnalyzer *a, ASTNode *node);
+static Type visit_unary_expression(SemanticAnalyzer *a, ASTNode *node);
+static Type visit_binary_expression(SemanticAnalyzer *a, ASTNode *node);
+
+static Type check_arithmetic(SemanticAnalyzer *a, const ASTNode *node, Type left, Type right);
+static Type check_relational(SemanticAnalyzer *a, const ASTNode *node, Type left, Type right);
+static Type check_equality(SemanticAnalyzer *a, const ASTNode *node, Type left, Type right);
+static Type check_logical(SemanticAnalyzer *a, const ASTNode *node, Type left, Type right);
+
+static const char *binary_operator_symbol(BinaryOperator op);
+static void report_operand_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                                    Type expected, Type left, Type right);
+static void report_equality_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                                     Type left, Type right);
+static void report_unary_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                                  Type expected, Type found);
+static void report_initialization_mismatch(SemanticAnalyzer *a, int line, int column,
+                                           Type declared, Type found);
+static void report_assignment_mismatch(SemanticAnalyzer *a, int line, int column,
+                                       Type target, Type found);
+static void report_condition_mismatch(SemanticAnalyzer *a, int line, int column,
+                                      ConditionKind kind, Type found);
+
+Type
+type_from_declared(ASTDeclaredType declared)
+{
+    return declared == AST_TYPE_BOOL ? TYPE_BOOL : TYPE_INT;
+}
+
+/*
+ * Un tipo "envenenado" (TYPE_ERROR) o aun sin determinar (TYPE_UNKNOWN, p. ej.
+ * tras un fallo interno) nunca produce un diagnostico nuevo: solo se propaga.
+ */
+static int
+is_undetermined(Type type)
+{
+    return type == TYPE_ERROR || type == TYPE_UNKNOWN;
+}
+\end{lstlisting}
+
+\bigskip
+
+\texttt{type\_from\_declared} existía antes, con otro nombre y como función privada de \texttt{semantic.c}
+(\texttt{type\_from\_ast}), la movimos aquí porque ahora la necesitan los dos módulos y porque \texttt{type.h}
+no puede incluir a \texttt{ast.h} (ya vimos el ciclo).
+
+\subsection*{El despachador de expresiones}
+
+\texttt{type\_check\_expression} es el punto de entrada, despacha según el tipo de nodo a la función de visita
+correspondiente y, \emph{en un único lugar}, escribe el resultado en \texttt{inferred\_type}. Si recibe algo que
+no es una expresión (o si ya hubo un fallo interno) devuelve \texttt{TYPE\_UNKNOWN} sin tocar el nodo.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: \texttt{type\_check\_expression}.}]
+Type
+type_check_expression(SemanticAnalyzer *a,
+                      ASTNode *node)
+{
+    Type result;
+
+    if (a == NULL || node == NULL || a->had_internal_error)
+        return TYPE_UNKNOWN;
+
+    switch (node->type) {
+    case AST_IDENTIFIER:
+        result = visit_identifier(a, node);
+        break;
+    case AST_INTEGER_LITERAL:
+        result = visit_integer_literal(a, node);
+        break;
+    case AST_BOOLEAN_LITERAL:
+        result = visit_boolean_literal(a, node);
+        break;
+    case AST_UNARY_EXPRESSION:
+        result = visit_unary_expression(a, node);
+        break;
+    case AST_BINARY_EXPRESSION:
+        result = visit_binary_expression(a, node);
+        break;
+    default:            //no es una expresion
+        return TYPE_UNKNOWN;
+    }
+
+    node->inferred_type = result;
+    return result;
+}
+\end{lstlisting}
+
+\subsection*{Verificación de inicializaciones, asignaciones y condiciones}
+
+Estas tres funciones comparten un patrón que conviene tener presente siempre analizan la expresión
+primero (para encontrar errores independientes dentro de ella), y solo después deciden si hay incompatibilidad.
+Si la expresión ya es \texttt{TYPE\_ERROR} no emiten nada, porque el error de origen ya se reportó.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: inicializaciones, asignaciones y condiciones.}]
+void
+type_check_initialization(SemanticAnalyzer *a,
+                          ASTNode *declaration)
+{
+    ASTNode *initializer;
+    Type declared;
+    Type actual;
+
+    if (a == NULL || declaration == NULL
+        || declaration->type != AST_VARIABLE_DECLARATION)
+        return;
+
+    initializer = declaration->data.variable_declaration.initializer;
+    if (initializer == NULL)
+        return;     //declaracion sin inicializador
+
+    //Siempre se analiza: puede tener errores independientes del tipo declarado
+    actual = type_check_expression(a, initializer);
+    if (is_undetermined(actual))
+        return;     //el error de origen ya se reporto
+
+    //Tipo ESCRITO en esta declaracion, no el del simbolo (en una redeclaracion puede diferir)
+    declared = type_from_declared(declaration->data.variable_declaration.declared_type);
+    if (!types_are_compatible(declared, actual))
+        report_initialization_mismatch(a, initializer->line, initializer->column,
+                                       declared, actual);
+}
+
+void
+type_check_assignment(SemanticAnalyzer *a,
+                      ASTNode *assignment,
+                      const Symbol *target)
+{
+    Type actual;
+
+    if (a == NULL || assignment == NULL || assignment->type != AST_ASSIGNMENT)
+        return;
+
+    //Siempre se analiza el valor, incluso si el destino no existe
+    actual = type_check_expression(a, assignment->data.assignment.value);
+
+    if (target == NULL || is_undetermined(actual))
+        return;     //uso no declarado o error previo: ya reportado
+
+    if (!types_are_compatible(target->type, actual))
+        report_assignment_mismatch(a, assignment->line, assignment->column,
+                                   target->type, actual);
+}
+
+void
+type_check_condition(SemanticAnalyzer *a,
+                     ASTNode *condition,
+                     ConditionKind kind)
+{
+    Type actual;
+
+    if (a == NULL)
+        return;
+
+    actual = type_check_expression(a, condition);
+    if (is_undetermined(actual))
+        return;
+
+    if (actual != TYPE_BOOL)
+        report_condition_mismatch(a, condition->line, condition->column, kind, actual);
+}
+\end{lstlisting}
+
+\bigskip
+
+Comentemos las decisiones, porque cada una responde a una frase concreta del enunciado:
+
+\begin{itemize}
+\item \textbf{Inicialización.} Comparamos el inicializador con el tipo \emph{escrito en la declaración que se
+  está analizando}, no con el del símbolo registrado. Parece lo mismo, pero no lo es cuando hay una
+  redeclaración: en \texttt{int x; bool x = true;} la segunda declaración es un error de redeclaración, y
+  su inicializador sigue siendo un \texttt{bool} perfectamente válido para el tipo que ahí se escribió. Si
+  comparáramos contra el símbolo original (\texttt{int}) reportaríamos un segundo error que no existe.
+
+\item \textbf{Asignación.} El destino llega ya resuelto. Si es \texttt{NULL}, la variable no está declarada: ese
+  error ya se reportó, así que no comparamos contra un tipo inexistente, pero el valor sí se analiza y nunca
+  modificamos \texttt{target->type} una asignación incorrecta no cambia el tipo de la variable.
+
+\item \textbf{Condición.} Solo \texttt{TYPE\_BOOL} es aceptable, un \texttt{int}, aunque sea distinto de cero, no
+  es una condición válida. Como la función no recorre ni el cuerpo ni las ramas, un error aquí no impide
+  analizarlas (eso lo garantiza \texttt{semantic.c}).
+\end{itemize}
+
+\subsection*{Visita de cada tipo de expresión}
+
+Aquí está el corazón de la regla ``el tipo de un identificador es el de su símbolo visible'' y de la
+propagación hacia arriba:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: visitas por tipo de expresión.}]
+static Type
+visit_identifier(SemanticAnalyzer *a,
+                 ASTNode *node)
+{
+    const char *name = node->data.identifier.name;
+    Symbol *symbol = symbol_table_lookup(&a->symbol_table, name);
+
+    if (symbol == NULL) {
+        semantic_report_undeclared(a, name, node->line, node->column);
+        return TYPE_ERROR;
+    }
+    return symbol->type;
+}
+
+static Type
+visit_integer_literal(SemanticAnalyzer *a,
+                      ASTNode *node)
+{
+    (void)a;
+    (void)node;
+    return TYPE_INT;
+}
+
+static Type
+visit_boolean_literal(SemanticAnalyzer *a,
+                      ASTNode *node)
+{
+    (void)a;
+    (void)node;
+    return TYPE_BOOL;
+}
+
+static Type
+visit_unary_expression(SemanticAnalyzer *a,
+                       ASTNode *node)
+{
+    Type operand = type_check_expression(a, node->data.unary.operand);
+
+    if (is_undetermined(operand))
+        return TYPE_ERROR;
+
+    //El unico operador unario de MiniC es la negacion aritmetica
+    if (operand != TYPE_INT) {
+        report_unary_mismatch(a, node, TYPE_INT, operand);
+        return TYPE_ERROR;
+    }
+    return TYPE_INT;
+}
+
+static Type
+visit_binary_expression(SemanticAnalyzer *a,
+                        ASTNode *node)
+{
+    //Ambos operandos se analizan siempre: sus errores son independientes
+    Type left = type_check_expression(a, node->data.binary.left);
+    Type right = type_check_expression(a, node->data.binary.right);
+
+    if (is_undetermined(left) || is_undetermined(right))
+        return TYPE_ERROR;
+
+    switch (node->data.binary.operator) {
+    case OP_ADD:
+    case OP_SUBTRACT:
+    case OP_MULTIPLY:
+    case OP_DIVIDE:
+        return check_arithmetic(a, node, left, right);
+    case OP_LESS:
+    case OP_LESS_EQUAL:
+    case OP_GREATER:
+    case OP_GREATER_EQUAL:
+        return check_relational(a, node, left, right);
+    case OP_EQUAL:
+    case OP_NOT_EQUAL:
+        return check_equality(a, node, left, right);
+    case OP_AND:
+    case OP_OR:
+        return check_logical(a, node, left, right);
+    }
+    return TYPE_ERROR;      //operador fuera del enum
+}
+\end{lstlisting}
+
+\bigskip
+
+\begin{itemize}
+\item \texttt{visit\_identifier} usa \texttt{symbol\_table\_lookup}, la \emph{misma búsqueda visible} de la
+  Práctica 5, por lo que el \emph{shadowing} se respeta sin código adicional. Si el símbolo no existe,
+  reporta la variable no declarada y devuelve \texttt{TYPE\_ERROR}.
+
+\item En \texttt{visit\_binary\_expression}, \emph{ambos} operandos se analizan antes de decidir nada. Si
+  analizáramos el izquierdo y, al ver un error, regresáramos sin visitar el derecho, perderíamos los
+  errores independientes del lado derecho (por ejemplo, otra variable no declarada).
+
+\item El \texttt{switch} sobre el operador no tiene \texttt{default}, para que \texttt{-Wswitch} nos avise si
+  agregamos un operador y olvidamos clasificarlo.
+\end{itemize}
+
+\subsection*{Reglas por categoría de operador}
+
+Cada categoría tiene su propia función, todas reciben tipos \emph{ya determinados}, porque
+\texttt{visit\_binary\_expression} filtró antes cualquier \texttt{TYPE\_ERROR}:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: reglas por categoría.}]
+static Type
+check_arithmetic(SemanticAnalyzer *a,
+                 const ASTNode *node,
+                 Type left, Type right)
+{
+    if (left == TYPE_INT && right == TYPE_INT)
+        return TYPE_INT;
+
+    report_operand_mismatch(a, node, TYPE_INT, left, right);
+    return TYPE_ERROR;
+}
+
+static Type
+check_relational(SemanticAnalyzer *a,
+                 const ASTNode *node,
+                 Type left, Type right)
+{
+    if (left == TYPE_INT && right == TYPE_INT)
+        return TYPE_BOOL;
+
+    report_operand_mismatch(a, node, TYPE_INT, left, right);
+    return TYPE_ERROR;
+}
+
+static Type
+check_equality(SemanticAnalyzer *a,
+               const ASTNode *node,
+               Type left, Type right)
+{
+    if (left == right)      //int == int, bool == bool
+        return TYPE_BOOL;
+
+    report_equality_mismatch(a, node, left, right);
+    return TYPE_ERROR;
+}
+
+static Type
+check_logical(SemanticAnalyzer *a,
+              const ASTNode *node,
+              Type left, Type right)
+{
+    if (left == TYPE_BOOL && right == TYPE_BOOL)
+        return TYPE_BOOL;
+
+    report_operand_mismatch(a, node, TYPE_BOOL, left, right);
+    return TYPE_ERROR;
+}
+\end{lstlisting}
+
+\bigskip
+
+Fijémonos en cómo se distinguen las categorías que parecen parecidas, los relacionales y los aritméticos
+exigen los mismos operandos (\texttt{int}), pero producen tipos distintos (\texttt{bool} frente a
+\texttt{int}). La igualdad es la única que no exige un tipo concreto sino \emph{el mismo} tipo en ambos lados
+(y por eso su mensaje es diferente) y los lógicos son los únicos que exigen \texttt{bool}.
+
+\subsection*{Diagnósticos de tipos}
+
+Todos los mensajes de tipos pasan por \texttt{semantic\_report\_error}, que incrementa el contador y escribe el
+encabezado con la posición; cada función \texttt{report\_*} solo arma el texto de su caso:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{type\_checker.c}: diagnósticos.}]
+static const char*
+binary_operator_symbol(BinaryOperator op)
+{
+    switch (op) {
+    case OP_ADD:           return "+";
+    case OP_SUBTRACT:      return "-";
+    case OP_MULTIPLY:      return "*";
+    case OP_DIVIDE:        return "/";
+    case OP_LESS:          return "<";
+    case OP_LESS_EQUAL:    return "<=";
+    case OP_GREATER:       return ">";
+    case OP_GREATER_EQUAL: return ">=";
+    case OP_EQUAL:         return "==";
+    case OP_NOT_EQUAL:     return "!=";
+    case OP_AND:           return "&&";
+    case OP_OR:            return "||";
+    }
+    return "?";
+}
+
+static void
+report_operand_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                        Type expected, Type left, Type right)
+{
+    semantic_report_error(a, node->line, node->column,
+                          "el operador '%s' requiere operandos\n"
+                          "de tipo '%s', pero se encontraron\n"
+                          "'%s' y '%s'.",
+                          binary_operator_symbol(node->data.binary.operator),
+                          type_to_string(expected),
+                          type_to_string(left), type_to_string(right));
+}
+
+static void
+report_equality_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                         Type left, Type right)
+{
+    semantic_report_error(a, node->line, node->column,
+                          "el operador '%s' requiere operandos\n"
+                          "del mismo tipo, pero se encontraron\n"
+                          "'%s' y '%s'.",
+                          binary_operator_symbol(node->data.binary.operator),
+                          type_to_string(left), type_to_string(right));
+}
+
+static void
+report_unary_mismatch(SemanticAnalyzer *a, const ASTNode *node,
+                      Type expected, Type found)
+{
+    semantic_report_error(a, node->line, node->column,
+                          "el operador unario '-' requiere\n"
+                          "un operando de tipo '%s',\n"
+                          "pero se encontro '%s'.",
+                          type_to_string(expected), type_to_string(found));
+}
+
+static void
+report_initialization_mismatch(SemanticAnalyzer *a, int line, int column,
+                               Type declared, Type found)
+{
+    semantic_report_error(a, line, column,
+                          "no es posible inicializar una variable\n"
+                          "de tipo '%s' con una expresion de tipo '%s'.",
+                          type_to_string(declared), type_to_string(found));
+}
+
+static void
+report_assignment_mismatch(SemanticAnalyzer *a, int line, int column,
+                           Type target, Type found)
+{
+    semantic_report_error(a, line, column,
+                          "no es posible asignar un valor de tipo '%s'\n"
+                          "a una variable de tipo '%s'.",
+                          type_to_string(found), type_to_string(target));
+}
+
+static void
+report_condition_mismatch(SemanticAnalyzer *a, int line, int column,
+                          ConditionKind kind, Type found)
+{
+    semantic_report_error(a, line, column,
+                          "la condicion de una sentencia '%s'\n"
+                          "debe ser de tipo 'bool',\n"
+                          "pero se encontro '%s'.",
+                          kind == CONDITION_IF ? "if" : "while",
+                          type_to_string(found));
+}
+\end{lstlisting}
+
+% ================================================================
+\section*{Integración con el analizador semántico}
+% ================================================================
+
+\subsection*{Funciones nuevas o que cambiaron de ámbito}
+
+\texttt{report\_internal\_error} y \texttt{report\_undeclared} eran funciones privadas del archivo, como ahora
+también las necesita el verificador, las hicimos públicas y les agregamos el prefijo \texttt{semantic\_} (el
+cuerpo no cambió, solo el nombre; el mismo renombrado se aplicó en todas las llamadas dentro de
+\texttt{semantic.c}). Lo realmente nuevo es \texttt{semantic\_report\_error}, una función con número variable
+de argumentos, similar a \texttt{printf}, que sirve para todos los diagnósticos de tipos:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{semantic.c}: funciones de diagnóstico públicas.}]
+void
+semantic_report_internal_error(SemanticAnalyzer *a)      /* antes: report_internal_error */
+{
+    if (!a->had_internal_error)
+        fprintf(stderr,
+                "Error interno: no se pudo reservar memoria durante el analisis semantico.\n");
+    a->had_internal_error = 1;
+}
+
+void
+semantic_report_error(SemanticAnalyzer *a,               /* NUEVA */
+                      int line, int column,
+                      const char *format, ...)
+{
+    va_list args;
+
+    a->error_count++;
+    fprintf(stderr, "Error semantico [%d:%d]:\n", line, column);
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+}
+
+void
+semantic_report_undeclared(SemanticAnalyzer *a,          /* antes: report_undeclared */
+                           const char *name,
+                           int line, int col)
+{
+    a->error_count++;
+    fprintf(stderr, "Error semantico [%d:%d]:\n"
+                    "la variable '%s' no ha sido declarada.\n",
+            line, col, name);
+}
+\end{lstlisting}
+
+\bigskip
+
+Los \texttt{...} de \texttt{semantic\_report\_error} importan la declaración en \texttt{semantic.h} y la
+definición tienen que coincidir exactamente. En un primer intento los omitimos en el encabezado y el compilador
+rechazó todas las llamadas con ``too many arguments'' (lo comentamos en los problemas encontrados).
+
+\subsection*{Funciones modificadas}
+
+Las sentencias ya no recorren expresiones por su cuenta llaman al verificador, la asignación es el cambio más
+interesante, porque ahora \emph{resuelve} el destino aquí y se lo pasa ya resuelto al verificador:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{semantic.c}: \texttt{visit\_assignment} y \texttt{visit\_print\_statement}.}]
+static void
+visit_assignment(SemanticAnalyzer *a,
+                 ASTNode *node)
+{
+    Symbol *target = symbol_table_lookup(&a->symbol_table, node->data.assignment.name);
+
+    if (target == NULL)
+        semantic_report_undeclared(a, node->data.assignment.name, node->line, node->column);
+
+    //target puede ser NULL: el verificador analiza el valor pero no compara tipos
+    type_check_assignment(a, node, target);
+}
+
+static void
+visit_print_statement(SemanticAnalyzer *a,
+                      ASTNode *node)
+{
+    //print acepta int y bool: solo exige que la expresion sea valida
+    (void)type_check_expression(a, node->data.print_statement.expression);
+}
+\end{lstlisting}
+
+\bigskip
+
+El \texttt{if} (y, igual, el \texttt{while}, que solo cambia \texttt{CONDITION\_IF} por
+\texttt{CONDITION\_WHILE} y tiene un único cuerpo) verifica la condición y, sin importar el resultado, sigue con
+las ramas:
+
+\begin{lstlisting}[style=modernc, caption={\texttt{semantic.c}: \texttt{visit\_if\_statement}.}]
+static void
+visit_if_statement(SemanticAnalyzer *a,
+                   ASTNode *node)
+{
+    type_check_condition(a, node->data.if_statement.condition, CONDITION_IF);
+    //un error en la condicion no impide analizar las ramas
+    visit_statement(a, node->data.if_statement.then_branch);
+    visit_statement(a, node->data.if_statement.else_branch);
+}
+\end{lstlisting}
+
+\bigskip
+
+En \texttt{visit\_variable\_declaration} el cambio es doble el tipo del símbolo viene de
+\texttt{type\_from\_declared}, y al final, en lugar de recorrer el inicializador, se llama al verificador.
+El resto de la función (búsqueda local, no sobrescribir en una redeclaración, propiedad del símbolo
+insertado) quedó igual.
+
+\begin{lstlisting}[style=modernc, caption={\texttt{semantic.c}: cambios en \texttt{visit\_variable\_declaration}.}]
+        Symbol *sym = symbol_create(name,
+                                    type_from_declared(node->data.variable_declaration.declared_type),
+                                    /* antes: type_from_ast(...) */
+                                    a->symbol_table.current_scope->level, ...);
+    /* ... */
+    //El simbolo ya es visible: int x = x; es valido.
+    //El inicializador se verifica contra el tipo escrito en ESTA declaracion,
+    //incluso si fue una redeclaracion.
+    type_check_initialization(a, node);     /* antes: visit_expression(a, initializer) */
+\end{lstlisting}
+
+\bigskip
+
+Por último, el caso por omisión de \texttt{visit\_statement} (una expresión suelta) también pasa por
+\texttt{type\_check\_expression}. \texttt{visit\_program}, \texttt{visit\_block} y las funciones de
+\texttt{init}/\texttt{analyze}/\texttt{destroy} no cambiaron.
+
+\subsection*{Funciones eliminadas}
+
+\begin{itemize}
+\item \texttt{type\_from\_ast}: movida a \texttt{type\_checker.c} con el nombre \texttt{type\_from\_declared}.
+\item \texttt{visit\_identifier\_use}: su trabajo (buscar el identificador y reportar si no existe) lo hace ahora
+  \texttt{visit\_identifier} en el verificador, que además devuelve el tipo.
+\item \texttt{visit\_expression} (y su declaración adelantada): sustituida por \texttt{type\_check\_expression}.
+  La anterior recorría la expresión solo para buscar identificadores, y no calculaba nada.
+\end{itemize}
+
+% ================================================================
+\section*{Propagación de \texttt{TYPE\_ERROR} y prevención de cascadas}
+% ================================================================
+
+Esta es la parte donde el enunciado más insiste, así que dediquémosle espacio. El problema es el siguiente:
+si \texttt{x} no está declarada, \texttt{x + true} produce un primer error muy útil (``\texttt{x} no ha sido
+declarada''). Si el verificador siguiera adelante y dijera además ``el operador \texttt{+} requiere enteros'', ese
+segundo mensaje sería solo consecuencia del primero y no aportaría nada.\\
+
+Nuestra solución se apoya en tres piezas que ya vimos en el código:
+
+\begin{enumerate}[label=\arabic*.]
+\item \textbf{Un identificador no declarado devuelve \texttt{TYPE\_ERROR}.} Es el origen del tipo ``envenenado''.
+
+\item \textbf{Un operador con algún operando indeterminado devuelve \texttt{TYPE\_ERROR} sin reportar nada.}
+  Esto ocurre en \texttt{visit\_unary\_expression} y \texttt{visit\_binary\_expression}, antes de aplicar la
+  regla. Así el error asciende por el árbol sin generar mensajes nuevos.
+
+\item \textbf{Inicializaciones, asignaciones y condiciones no reportan si el tipo es indeterminado.} Es el
+  \texttt{if (is\_undetermined(actual)) return;} que se repite en las tres.
+\end{enumerate}
+
+La propagación trata igual a \texttt{TYPE\_ERROR} y a \texttt{TYPE\_UNKNOWN}, un \texttt{TYPE\_UNKNOWN} aparece,
+por ejemplo, cuando \texttt{type\_check\_expression} se interrumpe por un fallo interno; sin esta decisión,
+después de un error de memoria podrían aparecer incompatibilidades falsas.\\
+
+La otra mitad del problema es no \emph{ocultar} errores independientes, por eso:
+
+\begin{itemize}
+\item Los dos operandos de un binario se analizan siempre, aunque el primero ya sea \texttt{TYPE\_ERROR}.
+\item El valor de una asignación y el inicializador de una declaración se analizan siempre, aunque el destino no
+  exista o el nombre sea una redeclaración.
+\item Un error en la condición no impide analizar el cuerpo del \texttt{while} ni ninguna rama del \texttt{if}.
+\end{itemize}
+
+Veamos un caso real de nuestras pruebas, que reúne varias de estas situaciones, en cada línea hay exactamente un
+error \emph{original}, y ninguna asignación produce un diagnóstico adicional por culpa de la suma incorrecta:
+
+\begin{verbatim}
+int n;
+bool b;
+n = b + 1;              // error en '+'; resultado TYPE_ERROR
+b = n + true;           // error en '+'; no se compara la asignacion
+n = (b && 1) + 2;       // error en '&&'; '+' y '=' callan
+\end{verbatim}
+
+\begin{verbatim}
+Error semantico [3:6]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [4:6]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+Error semantico [5:7]:
+el operador '&&' requiere operandos
+de tipo 'bool', pero se encontraron
+'bool' y 'int'.
+\end{verbatim}
+
+% ================================================================
+\section*{Relación entre nodos y símbolos}
+% ================================================================
+
+El enunciado recomienda (aunque no obliga) que cada identificador del AST conserve una referencia al símbolo
+resuelto, y permite sustituirla por otra estrategia si queda claramente documentada. Decidimos no
+guardar apuntadores a símbolos en el AST, pues  con la estrategia de liberación inmediata de la Práctica 5,
+\texttt{symbol\_table\_exit\_scope} destruye los símbolos de un bloque al salir de él; cualquier
+\texttt{Symbol *} guardado en un nodo de ese bloque quedaría colgante en cuanto el bloque termina.\\
+
+En su lugar, la relación entre un uso y su declaración se establece \emph{durante} el recorrido, mediante la
+búsqueda visible, y lo que sobrevive en el árbol es el resultado que necesitan las etapas posteriores, el tipo
+(\texttt{inferred\_type}), que es un valor.
+El símbolo conserva su nodo de declaración (\texttt{declaration}) y no es propietario de él, igual que antes.\\
+
+Esto corrige una predicción de nuestro reporte anterior, donde anticipamos que en esta práctica tendríamos que
+conservar los ámbitos retirados, xomo no anotamos el árbol con apuntadores, no hace falta cambiar la
+estrategia de liberación. Si en una práctica posterior se necesitan esas referencias, el cambio sería conservar
+los ámbitos retirados y liberarlos en \texttt{symbol\_table\_destroy}; lo dejamos señalado como trabajo futuro.
+
+% ================================================================
+\section*{Propiedad y liberación de memoria}
+% ================================================================
+
+En esta práctica no agregamos reservas de memoria nuevas, así que los propietarios siguen siendo los de la
+Práctica 5:
+
+\begin{itemize}
+\item \textbf{El símbolo} es propietario de la copia de su nombre no lo es de su nodo de declaración.
+\item \textbf{El ámbito} es propietario de sus símbolos y de su arreglo de buckets.
+\item \textbf{La tabla} es propietaria de los ámbitos de la pila vigente.
+\item \textbf{El analizador} es propietario de la tabla, pero no del AST, el árbol es de \texttt{main.c}, que
+  lo libera con \texttt{ast\_destroy}.
+\item \textbf{El campo \texttt{inferred\_type}} es un valor dentro del nodo, no es propietario de nada y
+  \texttt{ast\_destroy} no cambia.
+\item \textbf{El verificador de tipos} no reserva memoria solo lee el AST y la tabla, y escribe un valor en
+  cada nodo de expresión.
+\end{itemize}
+
+Como no hay apuntadores nuevos entre estructuras, el orden de destrucción sigue siendo el mismo (analizador,
+AST, parser y lexer) y no puede producir accesos inválidos. Verificamos la memoria con \texttt{valgrind} sobre
+los dos ejemplos del enunciado:
+
+\begin{verbatim}
+$ valgrind --leak-check=full --show-leak-kinds=all ./minic programa_valido.mc
+Programa semanticamente correcto.
+==17194== HEAP SUMMARY:
+==17194==     in use at exit: 0 bytes in 0 blocks
+==17194==   total heap usage: 122 allocs, 122 frees, 7,986 bytes allocated
+==17194== All heap blocks were freed -- no leaks are possible
+==17194== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+$ valgrind --leak-check=full --show-leak-kinds=all ./minic programa_invalido.mc
+(seis diagnosticos en stderr)
+==17228== HEAP SUMMARY:
+==17228==     in use at exit: 0 bytes in 0 blocks
+==17228==   total heap usage: 103 allocs, 103 frees, 6,626 bytes allocated
+==17228== All heap blocks were freed -- no leaks are possible
+==17228== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{verbatim}
+
+En ambos casos todas las reservas se liberan y valgrind no reporta errores, incluida la ruta con errores
+semánticos.
+
+% ================================================================
+\section*{Diagnósticos y recuperación}
+% ================================================================
+
+\subsection*{Formato de los errores}
+
+Los diagnósticos de tipos usan el mismo formato de la Práctica 5, la categoría, la posición entre corchetes
+(línea desde 1 y columna desde 0, igual que el lexer) y una descripción en varias líneas. Todos van a
+\texttt{stderr}, la posición que reportamos en cada caso es:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|p{4.6cm}|p{11cm}|}
+\hline
+\textbf{Construcción} & \textbf{Posición del diagnóstico} \\ \hline
+Operador binario o unario & El operador (\texttt{5 + true} se reporta en \texttt{[1:2]}). \\ \hline
+Inicialización & El nodo del inicializador: para un literal o un identificador, su primer carácter
+  (\texttt{int x = true;} en \texttt{[1:8]}). \\ \hline
+Asignación & El identificador destino (\texttt{x = activo;} en la línea 4, \texttt{[4:0]}). \\ \hline
+Condición de \texttt{if} / \texttt{while} & El nodo de la expresión condición. \\ \hline
+Variable no declarada, redeclaración & Sin cambios respecto de la Práctica 5. \\ \hline
+\end{tabular}
+\caption{Criterio de posición de los diagnósticos.}
+\end{table}
+
+Para una inicialización con una expresión compuesta, como \texttt{int x = 1 < 2;}, el nodo del inicializador es
+el operador principal, así que la posición apunta al \texttt{<}. El enunciado permite reportar en el
+identificador, en el \texttt{=} o en el inicio de la expresión ``siempre que el criterio sea consistente'';
+el nuestro es siempre la posición del nodo involucrado, y lo aplicamos igual en todas las construcciones.\\
+
+Estos son los formatos de cada diagnóstico (el de variable no declarada y el de redeclaración son los de la
+Práctica 5):
+
+\begin{verbatim}
+Error semantico [1:15]:
+no es posible inicializar una variable
+de tipo 'int' con una expresion de tipo 'bool'.
+
+Error semantico [4:0]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+
+Error semantico [1:2]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+
+Error semantico [1:13]:
+el operador '==' requiere operandos
+del mismo tipo, pero se encontraron
+'bool' y 'int'.
+
+Error semantico [1:0]:
+el operador unario '-' requiere
+un operando de tipo 'int',
+pero se encontro 'bool'.
+
+Error semantico [2:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+\end{verbatim}
+
+\subsection*{Acumulación de errores}
+
+Igual que en la práctica anterior, un error semántico no detiene el análisis, el verificador reporta, devuelve
+\texttt{TYPE\_ERROR} y el recorrido continúa, así que se detectan varios errores a la vez, siempre en el orden
+del programa. El ejemplo del enunciado lo muestra bien, con \texttt{x = activo; activo = 10; print(x + true);}
+se reportan las tres incompatibilidades, y ninguna modifica el tipo de \texttt{x} ni el de \texttt{activo}.\\
+
+También conservamos la regla de que el análisis de tipos \emph{solo se ejecuta sobre una estructura sintáctica
+válida} que, ante un error léxico o sintáctico, \texttt{main.c} no llama al analizador semántico y, por lo
+tanto, tampoco al verificador.
+
+\subsection*{Errores internos}
+
+El mecanismo no cambió, pero conviene recorrerlo con las preguntas que nos plantea el enunciado para revisar el
+diseño:
+
+\begin{itemize}
+\item \textbf{¿Quién comunica el fallo interno?} \texttt{semantic\_report\_internal\_error}.
+  Escribe el mensaje por \texttt{stderr} una única vez y activa \texttt{had\_internal\_error}. Después,
+  \texttt{semantic\_analyze} devuelve \texttt{SEM\_INTERNAL\_ERROR} y \texttt{main.c} lo traduce al código de
+  salida \texttt{2}. Nunca se presenta como incompatibilidad de tipos: \texttt{TYPE\_ERROR} solo significa
+  ``una expresión afectada por un error semántico'', no ``algo falló''.
+
+\item \textbf{¿Quién posee cada estructura?} Lo detallamos en la sección de memoria, el símbolo, su nombre, el
+  ámbito, sus símbolos, la tabla, los ámbitos, el analizador, la tabla; y \texttt{main.c}, el AST.
+
+\item \textbf{¿Dónde se evita duplicar diagnósticos?} El recorrido único (cada uso se visita
+  una vez), la propagación de \texttt{TYPE\_ERROR} (los padres callan) y el hecho de que el destino de una
+  asignación lo resuelve \texttt{semantic.c} y lo reporta una sola vez (el verificador solo recibe el
+  resultado).
+
+\item \textbf{¿Cómo se respeta el \emph{shadowing}?} El tipo de un identificador sale de
+  \texttt{symbol\_table\_lookup}, que va del ámbito actual al global y devuelve la declaración más cercana. Como
+  la búsqueda ocurre en el momento de la visita, siempre refleja el ámbito vigente.
+
+\item \textbf{¿En qué momento se escribe el mensaje de éxito?} Únicamente en \texttt{main.c}, dentro de
+  \texttt{analyze}, en el caso \texttt{SEM\_OK} y \emph{después} de destruir el analizador. Nada se imprime en
+  \texttt{stdout} mientras el análisis está en marcha, por lo que un programa con errores deja \texttt{stdout}
+  vacío.
+\end{itemize}
+
+% ================================================================
+\section*{Resultados y pruebas}\label{sec:resultados}
+% ================================================================
+
+\subsection*{Cambios en el \texttt{Makefile}}
+
+\begin{itemize}
+\item Agregamos \texttt{src/semantic/type.c} y \texttt{src/semantic/type\_checker.c} a \texttt{SOURCES}. Los
+  encabezados nuevos ya quedan cubiertos por el \texttt{wildcard} de \texttt{HEADERS}.
+
+\begin{verbatim}
+SOURCES = src/main.c \
+	src/lexer/token.c src/lexer/keywords.c \
+	src/lexer/lexer.c src/lexer/buffer_manage.c \
+	src/parser/parser.c src/parser/grammar.c \
+	src/ast/ast.c \
+	src/semantic/symbol.c src/semantic/scope.c \
+	src/semantic/symbol_table.c src/semantic/type.c \
+	src/semantic/type_checker.c src/semantic/semantic.c
+\end{verbatim}
+
+\item Retiramos los objetivos y variables de las pruebas públicas de las Prácticas 1 a 5 (\texttt{test-p1}
+  a \texttt{test-p5}), para no extender innecesariamente los archivos del entregable.
+  Además agregamos \texttt{test-p6}, que ejecuta el script oficial de la práctica, \texttt{test-cli} ahora solo
+  depende de \texttt{test-p6}.
+
+\begin{verbatim}
+PUBLIC_P6_DIR = tests/public/p6
+PUBLIC_P6_SCRIPT = $(PUBLIC_P6_DIR)/ejecutar_pruebas.sh
+
+test-p6: $(TARGET)
+	@echo "==== public-p6 ===="
+	@sh $(PUBLIC_P6_SCRIPT) ./$(TARGET)
+\end{verbatim}
+
+\item Conservamos las pruebas propias (\texttt{test-unit-lexer}, \texttt{test-unit-parser},
+  \texttt{test-unit-ast}, \texttt{test-unit-semantic}) y \texttt{test-args}, sin cambios.
+\end{itemize}
+
+\subsection*{Pruebas públicas de la Práctica 6}
+
+Para ejecutar estas pruebas, después de compilar, usamos:
+\begin{verbatim}
+$ make test-p6
+\end{verbatim}
+
+Esta es la salida completa:
+
+\begin{verbatim}
+==== public-p6 ====
+[CONTRATO OK] p01_inicializacion_valida
+
+Diagnosticos de p02_inicializacion_invalida (revisar CASOS.md):
+Error semantico [1:8]:
+no es posible inicializar una variable
+de tipo 'int' con una expresion de tipo 'bool'.
+Error semantico [2:9]:
+no es posible inicializar una variable
+de tipo 'bool' con una expresion de tipo 'int'.
+[CONTRATO OK] p02_inicializacion_invalida
+[CONTRATO OK] p03_asignacion_valida
+
+Diagnosticos de p04_asignacion_invalida (revisar CASOS.md):
+Error semantico [3:0]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [4:0]:
+no es posible asignar un valor de tipo 'int'
+a una variable de tipo 'bool'.
+[CONTRATO OK] p04_asignacion_invalida
+[CONTRATO OK] p05_aritmetica_valida
+
+Diagnosticos de p06_aritmetica_invalida (revisar CASOS.md):
+Error semantico [1:11]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [2:12]:
+el operador '-' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [3:8]:
+el operador '*' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+Error semantico [4:12]:
+el operador '/' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [5:6]:
+el operador unario '-' requiere
+un operando de tipo 'int',
+pero se encontro 'bool'.
+[CONTRATO OK] p06_aritmetica_invalida
+[CONTRATO OK] p07_relacionales_validos
+
+Diagnosticos de p08_relacionales_invalidos (revisar CASOS.md):
+Error semantico [1:11]:
+el operador '<' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [2:8]:
+el operador '<=' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+Error semantico [3:11]:
+el operador '>' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'bool'.
+Error semantico [4:12]:
+el operador '>=' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+[CONTRATO OK] p08_relacionales_invalidos
+[CONTRATO OK] p09_igualdad_valida
+
+Diagnosticos de p10_igualdad_invalida (revisar CASOS.md):
+Error semantico [1:8]:
+el operador '==' requiere operandos
+del mismo tipo, pero se encontraron
+'int' y 'bool'.
+Error semantico [2:12]:
+el operador '!=' requiere operandos
+del mismo tipo, pero se encontraron
+'bool' y 'int'.
+[CONTRATO OK] p10_igualdad_invalida
+[CONTRATO OK] p11_logicos_validos
+
+Diagnosticos de p12_logicos_invalidos (revisar CASOS.md):
+Error semantico [1:8]:
+el operador '&&' requiere operandos
+de tipo 'bool', pero se encontraron
+'int' y 'bool'.
+Error semantico [2:12]:
+el operador '||' requiere operandos
+de tipo 'bool', pero se encontraron
+'bool' y 'int'.
+[CONTRATO OK] p12_logicos_invalidos
+[CONTRATO OK] p13_control_valido
+
+Diagnosticos de p14_control_invalido (revisar CASOS.md):
+Error semantico [1:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [1:20]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [2:7]:
+la condicion de una sentencia 'while'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [2:18]:
+el operador unario '-' requiere
+un operando de tipo 'int',
+pero se encontro 'bool'.
+[CONTRATO OK] p14_control_invalido
+
+Diagnosticos de p15_ramas_no_ejecutadas (revisar CASOS.md):
+Error semantico [1:19]:
+la variable 'ausente' no ha sido declarada.
+Error semantico [1:44]:
+el operador unario '-' requiere
+un operando de tipo 'int',
+pero se encontro 'bool'.
+Error semantico [2:24]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+[CONTRATO OK] p15_ramas_no_ejecutadas
+[CONTRATO OK] p16_shadowing
+
+Diagnosticos de p17_orden_visibilidad (revisar CASOS.md):
+Error semantico [1:6]:
+la variable 'x' no ha sido declarada.
+[CONTRATO OK] p17_orden_visibilidad
+
+Diagnosticos de p18_redeclaracion (revisar CASOS.md):
+Error semantico [2:5]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+[CONTRATO OK] p18_redeclaracion
+
+Diagnosticos de p19_destino_ausente (revisar CASOS.md):
+Error semantico [1:0]:
+la variable 'ausente' no ha sido declarada.
+Error semantico [1:15]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+[CONTRATO OK] p19_destino_ausente
+
+Diagnosticos de p20_propagacion (revisar CASOS.md):
+Error semantico [1:13]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [2:10]:
+el operador '*' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [3:6]:
+la variable 'no_declarada' no ha sido declarada.
+[CONTRATO OK] p20_propagacion
+
+Diagnosticos de p21_hermanos_independientes (revisar CASOS.md):
+Error semantico [1:12]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [1:26]:
+el operador '*' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+[CONTRATO OK] p21_hermanos_independientes
+[CONTRATO OK] p22_completo_valido
+
+Diagnosticos de p23_error_lexico (revisar CASOS.md):
+Error lexico [1:8]: caracter invalido '@'.
+Error sintactico [1:9]: se esperaba una expresion, pero se encontro ';'.
+[CONTRATO OK] p23_error_lexico
+
+Diagnosticos de p24_error_sintactico (revisar CASOS.md):
+Error sintactico [1:8]: se esperaba una expresion, pero se encontro ';'.
+[CONTRATO OK] p24_error_sintactico
+
+Contratos: 24 correctos, 0 fallidos. Diagnosticos pendientes de revision humana.
+\end{verbatim}
+
+Revisemos algunas salidas porque muestran las decisiones de diseño en acción:
+
+\begin{itemize}
+\item \textbf{p14.} Se reportan el error de la condición del \texttt{if} (\texttt{[1:4]}) \emph{y} el del
+  \texttt{+} del cuerpo (\texttt{[1:20]}); lo mismo con el \texttt{while} (\texttt{[2:7]} y \texttt{[2:18]}). Un
+  error en la condición no impide analizar el interior.
+\item \textbf{p15.} En las ramas aparecen una variable no declarada, una negación y una suma incorrectas, los
+  tres independientes.
+\item \textbf{p19.} Con \texttt{ausente} sin declarar, el programa produce la variable no declarada
+  (\texttt{[1:0]}) y el error del \texttt{+} del valor (\texttt{[1:15]}), pero ninguna incompatibilidad de
+  asignación.
+\item \textbf{p20.} Después de cada error de operador, las asignaciones y expresiones que lo contienen callan; solo
+  aparecen los errores de origen (dos operadores y una variable no declarada).
+\item \textbf{p23 y p24.} Solo hay errores léxicos y sintácticos: \texttt{main.c} no llama al analizador
+  semántico, y por lo tanto tampoco al verificador de tipos.
+\end{itemize}
+
+Además, ejecutamos los dos programas de ejemplo que acompañan al enunciado. El programa válido imprime el
+mensaje de éxito con código de salida \texttt{0} y \texttt{stderr} vacío. El inválido produce seis diagnósticos,
+que coinciden con la salida de ejemplo del enunciado (sección 34), con \texttt{stdout} vacío y código de salida
+\texttt{1}:
+
+\begin{verbatim}
+Error semantico [1:15]:
+no es posible inicializar una variable
+de tipo 'int' con una expresion de tipo 'bool'.
+Error semantico [2:14]:
+no es posible inicializar una variable
+de tipo 'bool' con una expresion de tipo 'int'.
+Error semantico [4:0]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [6:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [10:7]:
+la condicion de una sentencia 'while'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [11:22]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+\end{verbatim}
+
+Es una buena comprobación porque \texttt{[11:22]} corresponde al operador \texttt{+} de
+\texttt{contador + false}: confirma que el parser guarda en los nodos binarios la columna del operador, que es
+lo que suponen nuestros diagnósticos. Además, \texttt{activo = contador + false;} produce \emph{solo} el error
+del \texttt{+}, y no una incompatibilidad de asignación adicional: es la propagación de \texttt{TYPE\_ERROR} en
+acción.
+
+\subsection*{Pruebas propias del analizador semántico}
+
+\subsubsection*{¿Qué pasó con las pruebas de la Práctica 5?}
+
+Le pasamos a Claude las pruebas de la Práctica 5 para que corroborara que funcionan según los nuevos objetivos
+de la Práctica 6, nos confirmó que siguen siendo válidas, nos dio casos extra, y todos funcionan. Temíamos que,
+al validar tipos, las 40 pruebas anteriores dejaran de pasar; Claudio nos explicó que la razón por la que no es
+así es que en todas las variables que reciben valores son \texttt{int} y se les asignan expresiones enteras,
+y los \texttt{bool} aparecen solo con \texttt{true}, \texttt{false} o como condición. Son programas correctos
+también para el sistema de tipos, y prueban cosas que la Práctica 6 exige conservar
+(ámbitos, \emph{shadowing}, redeclaración, uso antes de declarar y recuperación ante varios errores).\\
+
+\subsubsection*{Ejecución de las pruebas}
+
+Para ejecutar nuestras pruebas de esta práctica, es necesario utilizar el siguiente comando después de compilar:
+\begin{verbatim}
+$ make test-unit-semantic
+\end{verbatim}
+
+El sistema ejecuta cada archivo \texttt{.mc} y compara la salida estándar, los diagnósticos y el código de
+salida contra los archivos esperados; una prueba es correcta solo si los tres coinciden. Obtuvimos:
+
+\begin{verbatim}
+==== unit-semantic ====
+PASS: ut_sem_assignment_target
+PASS: ut_sem_block_redeclaration
+PASS: ut_sem_condition_use
+PASS: ut_sem_deep_nesting
+PASS: ut_sem_empty_blocks
+PASS: ut_sem_empty
+PASS: ut_sem_errors_inside_blocks
+PASS: ut_sem_expression_use
+PASS: ut_sem_global_from_nested
+PASS: ut_sem_global_redeclaration
+PASS: ut_sem_if_else_valid
+PASS: ut_sem_if_scopes
+PASS: ut_sem_if_without_blocks_ok
+PASS: ut_sem_initializer_uses
+PASS: ut_sem_long_identifier_redecl
+PASS: ut_sem_long_identifiers
+...
+PASS: ut_sem_type_while_invalid
+PASS: ut_sem_type_while_valid
+PASS: ut_sem_undeclared_completely
+PASS: ut_sem_use_after_declaration
+PASS: ut_sem_use_before_declaration
+PASS: ut_sem_while_local_escape
+PASS: ut_sem_while_locals
+----
+Total: 81  Pass: 81  Fail: 0
+\end{verbatim}
+
+Los 81 casos pasan, los 40 de la Práctica 5, sin modificarlos, y los 41 nuevos.
+
+\subsubsection*{Los 41 casos nuevos de la Práctica 6}
+
+Los casos que agregamos (por parte de Claude) son propios de la verificación de tipos, llevan el prefijo
+\texttt{ut\_sem\_type\_} (que omitimos en las tablas) y siguen la lista de temas mínimos del enunciado. Cada
+programa \texttt{.mc} tiene su salida estándar esperada (\texttt{.out}), sus diagnósticos esperados
+(\texttt{.err}) y su código de salida (\texttt{.code}), igual que los anteriores.
+
+\paragraph{Literales, identificadores e inicialización.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{int\_literal} & \small \texttt{print} de enteros, incluido uno negativo. & \small Correcto \\ \hline
+\footnotesize\texttt{bool\_literal} & \small \texttt{print(true)} y \texttt{print(false)}. & \small Correcto \\ \hline
+\footnotesize\texttt{identifiers} & \small Un identificador toma el tipo de su declaración. & \small Correcto \\ \hline
+\footnotesize\texttt{init\_valid} & \small Inicializadores \texttt{int} y \texttt{bool}, también con expresiones y variables. & \small Correcto \\ \hline
+\footnotesize\texttt{init\_invalid} & \small \texttt{int} inicializado con \texttt{false} y \texttt{bool} con \texttt{1}. & \small 2 errores \\ \hline
+\footnotesize\texttt{redeclaration\_init} & \small \texttt{int x; int x = true; bool x = 1;}: cada redeclaración da el error de redeclaración y el de inicialización, medido contra el tipo escrito en esa declaración. & \small 4 errores \\ \hline
+\caption{Literales, identificadores e inicialización (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Asignación.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{assign\_valid} & \small Asignaciones \texttt{int} y \texttt{bool} con expresiones del mismo tipo. & \small Correcto \\ \hline
+\footnotesize\texttt{assign\_invalid} & \small \texttt{x = activo;} y \texttt{activo = 10;} & \small 2 errores \\ \hline
+\footnotesize\texttt{assignment\_missing\_target} & \small \texttt{y = true + 1;} y \texttt{z = w;} con destinos no declarados: se reportan la variable y el operador, pero ninguna incompatibilidad de asignación. & \small 4 errores \\ \hline
+\caption{Asignación (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Operadores.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{arith\_valid} & \small Las cuatro operaciones con enteros, mezcladas. & \small Correcto \\ \hline
+\footnotesize\texttt{arith\_invalid} & \small \texttt{+ * - /} con algún operando \texttt{bool}. & \small 4 errores \\ \hline
+\footnotesize\texttt{unary\_valid} & \small Negación de literales y variables, incluida \texttt{--contador}. & \small Correcto \\ \hline
+\footnotesize\texttt{unary\_invalid} & \small \texttt{-true} y \texttt{-b} con \texttt{b} booleana. & \small 2 errores \\ \hline
+\footnotesize\texttt{relational\_valid} & \small \texttt{< <= > >=} entre enteros y su asignación a \texttt{bool}. & \small Correcto \\ \hline
+\footnotesize\texttt{relational\_invalid} & \small Relacionales con operandos \texttt{bool}. & \small 3 errores \\ \hline
+\footnotesize\texttt{equality\_valid} & \small \texttt{== !=} entre dos enteros y entre dos booleanos. & \small Correcto \\ \hline
+\footnotesize\texttt{equality\_invalid} & \small \texttt{5 == true} y \texttt{activo != 10}: tipos distintos. & \small 2 errores \\ \hline
+\footnotesize\texttt{logical\_valid} & \small \texttt{\&\&} y \texttt{||} con booleanos, incluida una mezcla con relacionales. & \small Correcto \\ \hline
+\footnotesize\texttt{logical\_invalid} & \small \texttt{3 \&\& 5} y \texttt{activo || 10}. & \small 2 errores \\ \hline
+\caption{Operadores (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Condiciones y sentencias.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{if\_valid} & \small Condiciones booleanas, también comparaciones. & \small Correcto \\ \hline
+\footnotesize\texttt{if\_invalid} & \small \texttt{if (10)} y \texttt{if (x)} con \texttt{x} entera: un entero no es verdadero. & \small 2 errores \\ \hline
+\footnotesize\texttt{while\_valid} & \small Ciclo con condición relacional. & \small Correcto \\ \hline
+\footnotesize\texttt{while\_invalid} & \small \texttt{while (5)} y \texttt{while (contador)}. & \small 2 errores \\ \hline
+\footnotesize\texttt{branches\_still\_analyzed} & \small \texttt{if (5)} y \texttt{while (7)} con cuerpos que tienen una variable inexistente y asignaciones incompatibles: el error de la condición no oculta los del interior. & \small 6 errores \\ \hline
+\footnotesize\texttt{print\_any\_type} & \small \texttt{print} acepta enteros, booleanos y expresiones de ambos tipos. & \small Correcto \\ \hline
+\caption{Condiciones y sentencias (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Expresiones compuestas.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{nested\_expressions} & \small Paréntesis, negación y combinaciones aritméticas, relacionales y lógicas bien tipadas. & \small Correcto \\ \hline
+\footnotesize\texttt{precedence\_valid} & \small Precedencia entre aritméticos, relacionales, igualdad y lógicos. & \small Correcto \\ \hline
+\footnotesize\texttt{precedence\_invalid} & \small \texttt{1 + 2 == 3 < 4} se agrupa como \texttt{(1 + 2) == (3 < 4)}: compara \texttt{int} con \texttt{bool}. & \small 1 error [1:12] \\ \hline
+\footnotesize\texttt{associativity\_invalid} & \small \texttt{1 == 1 == 1} se agrupa como \texttt{(1 == 1) == 1}. & \small 1 error [1:13] \\ \hline
+\caption{Expresiones compuestas (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Propagación y cascadas.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{error\_propagation} & \small Cinco expresiones con una variable inexistente dentro de operadores y condiciones: solo deben aparecer errores de variable no declarada. & \small 5 errores \\ \hline
+\footnotesize\texttt{cascade\_assignment} & \small Un operador incorrecto dentro de una asignación: no debe aparecer una incompatibilidad de asignación derivada. & \small 3 errores \\ \hline
+\footnotesize\texttt{multiple\_errors} & \small Dos asignaciones incompatibles y un operador incorrecto: se acumulan sin alterar los tipos de las variables. & \small 3 errores \\ \hline
+\footnotesize\texttt{independent\_siblings} & \small \texttt{-true + (false < true)}: los errores de los dos subárboles son independientes y se reportan ambos, sin uno extra del \texttt{+}. & \small 2 errores \\ \hline
+\caption{Propagación y cascadas (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Ámbitos con tipos.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{shadowing\_valid} & \small Una \texttt{bool x} interna oculta a una \texttt{int x}; \texttt{if (x)} dentro es válido y \texttt{x = 10} fuera también. & \small Correcto \\ \hline
+\footnotesize\texttt{shadowing\_inner\_int} & \small Una \texttt{int x} interna oculta a una \texttt{bool x}; fuera del bloque \texttt{if (x)} vuelve a ser válido. & \small Correcto \\ \hline
+\footnotesize\texttt{shadowing\_invalid} & \small Las mismas variables pero con asignaciones y condición del tipo del ámbito equivocado. & \small 3 errores \\ \hline
+\footnotesize\texttt{scope\_and\_type\_errors} & \small Mezcla de una incompatibilidad, una variable fuera de su bloque y variables inexistentes. & \small 4 errores \\ \hline
+\caption{Ámbitos con tipos (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+\paragraph{Programas completos.}\mbox{}\\[0.3em]
+\begin{longtable}{|p{5.2cm}|p{7.6cm}|p{3.4cm}|}
+\hline
+\textbf{Caso} & \textbf{Qué verifica} & \textbf{Resultado} \\ \hline \endhead
+\footnotesize\texttt{spec\_example\_valid} & \small Ejemplo válido del enunciado. & \small Correcto \\ \hline
+\footnotesize\texttt{spec\_example\_invalid} & \small Ejemplo inválido del enunciado: dos inicializaciones, una condición y un operador. & \small 4 errores \\ \hline
+\footnotesize\texttt{complete\_valid} & \small Programa con \texttt{while}, \texttt{if} y \texttt{print} bien tipados. & \small Correcto \\ \hline
+\footnotesize\texttt{complete\_invalid} & \small Programa de la sección 34 del enunciado, con sus seis diagnósticos. & \small 6 errores \\ \hline
+\caption{Programas completos (prefijo \texttt{ut\_sem\_type\_}).}
+\end{longtable}
+
+% ================================================================
+\section*{Problemas encontrados}\label{sec:problemas}
+% ================================================================
+
+\subsection*{Ciclo de inclusión entre \texttt{ast.h} y \texttt{symbol.h}}
+
+Para guardar \texttt{Type} dentro del nodo, \texttt{ast.h} necesita conocerlo; pero \texttt{Type} estaba en
+\texttt{symbol.h}, que ya incluye a \texttt{ast.h}. Era un ciclo que resolvimos moviendo \texttt{Type} a
+\texttt{type.h}, un encabezado sin dependencias del proyecto, que ahora incluyen los dos. De ahí viene también
+que la conversión \texttt{ASTDeclaredType} $\to$ \texttt{Type} viva en \texttt{type\_checker.h} y no en
+\texttt{type.h}.
+
+\subsection*{La declaración y la definición de \texttt{semantic\_report\_error} no coincidían}
+
+Al compilar por primera vez obtuvimos un error de ``too many arguments'' en todas las llamadas desde
+\texttt{type\_checker.c} y, en \texttt{semantic.c}, ``conflicting types''. La causa era que en
+\texttt{semantic.h} habíamos escrito la declaración sin los \texttt{...}, y en C una función con número
+variable de argumentos y otra sin él son tipos distintos. Corregimos la declaración y el error desapareció.
+
+\subsection*{¿Guardar el símbolo en el AST?}
+
+La recomendación del enunciado era el objetivo inicial, pero con la liberación inmediata de ámbitos esos
+apuntadores quedarían colgantes. Preferimos no guardarlos y documentar la decisión
+(sección \emph{Relación entre nodos y símbolos}). Es una decisión de tiempos de vida, y la tomamos conscientes
+de que limita lo que podrán hacer las etapas posteriores sin volver a buscar el símbolo.
+
+\subsection*{Dónde medir la posición de cada error}
+
+Los ejemplos del enunciado suponían que un error de operador se reporta en la columna del operador, y no en
+la del primer operando. Como no modificamos el parser en esta práctica, necesitábamos confirmar que los nodos
+binarios y unarios guardaban esa posición. La salida de \texttt{programa\_invalido.mc} (\texttt{[11:22]}) lo
+confirmó para los binarios.
+
+\subsection*{Límite por anidamiento profundo}
+
+Como en las prácticas anteriores, el recorrido es recursivo; ahora también el verificador de tipos. Una entrada
+con una cantidad extrema de paréntesis o de bloques anidados puede agotar la pila. No agregamos un límite de
+profundidad y lo dejamos registrado como limitación conocida.
+
+% ================================================================
+\section*{Conclusiones}
+% ================================================================
+
+En esta práctica vimos que verificar tipos es, en buena medida, repetir con otra información el mismo
+recorrido que ya hacíamos. El AST y la tabla de símbolos de las prácticas anteriores tenían casi todo lo
+necesario, así que no tocamos el lexer ni el parser, y en el árbol solo agregamos un campo. Seguimos
+confirmando que separar las etapas nos permite agregar una nueva sin reescribir las anteriores.\\
+
+La idea que más pesó en el diseño fue \texttt{TYPE\_ERROR}. Con un solo valor especial, que se genera en el
+origen del error y se propaga hacia arriba sin decir nada, obtuvimos dos propiedades que parecen opuestas: no
+repetir diagnósticos derivados y, al mismo tiempo, no ocultar errores independientes. Para lograrlo hubo que ser
+disciplinados en un punto concreto: analizar \emph{siempre} los dos operandos, el valor de una asignación y las
+ramas de un condicional, y decidir si reportar o no solo después.\\
+
+También aprendimos a tomar decisiones por tiempos de vida y no por comodidad. Guardar el símbolo resuelto en
+cada identificador era lo que el enunciado recomendaba, pero choca con liberar los símbolos al salir de un
+bloque. Preferimos conservar solo el tipo, que es un valor, y dejar señalado qué habría que cambiar si una
+etapa posterior necesitara los símbolos.\\
+
+Por último, las pruebas nos dieron dos cosas. Primero, la tranquilidad de comprobar, en lugar de suponer, que
+las 40 pruebas anteriores seguían valiendo. Segundo, casos nuevos que verifican exactamente los puntos delicados
+de la práctica (cascada, errores independientes, \emph{shadowing} con tipos, redeclaración con inicializador),
+con esperados contrastados con los ejemplos del enunciado. Como limitaciones, el diseño sigue siendo recursivo, y
+las posiciones de los errores de inicialización con expresiones compuestas apuntan al operador principal,
+criterio que mantuvimos consistente y documentado.
+
+% ================================================================
+\section*{División del trabajo}
+% ================================================================
+Para esta práctica, el trabajo tanto del código como del reporte fue realizado en conjunto por ambos miembros
+del equipo durante tiempos libres dentro de la facultad. Discutiendo y analizando lo necesario a implementar,
+diseñar y cómo realizarlo. Nos reunimos en el laboratorio del Tlahuizcalpan
+\textit{Taller de Lenguajes Simbólicos}.
+
+% ================================================================
+\section*{Uso de herramientas de inteligencia artificial}
+% ================================================================
+
+Como mencionamos anteriormente, los casos nuevos propios de la verificación de tipos
+(\texttt{ut\_sem\_type\_*}) fueron proporcionados por Claude. Le pasamos el contexto de nuestro reporte y un zip con las pruebas anteriores para la Práctica 5. Además del resumen del reporte mismo para el CHANGELOG.md
+
+\begin{thebibliography}{99}
+\bibitem{ref1}
+  cppreference.com. (n.d.). C language. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/language}}}
+
+\bibitem{ref2}
+  cppreference.com. (n.d.). C11. Disponible en
+  \textcolor{links}{\uline{\url{https://en.cppreference.com/c/11}}}
+
+\bibitem{ref3}
+  Free Software Foundation. (n.d.). GNU make. Disponible en
+  \textcolor{links}{\uline{\url{https://www.gnu.org/software/make/manual/make.html}}}
+\end{thebibliography}
+
+\end{document}

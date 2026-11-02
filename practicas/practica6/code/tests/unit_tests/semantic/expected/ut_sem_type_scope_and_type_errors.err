@@ -1,0 +1,9 @@
+Error semantico [4:4]:
+no es posible asignar un valor de tipo 'bool'
+a una variable de tipo 'int'.
+Error semantico [6:0]:
+la variable 'b' no ha sido declarada.
+Error semantico [7:6]:
+la variable 'c' no ha sido declarada.
+Error semantico [8:8]:
+la variable 'c' no ha sido declarada.

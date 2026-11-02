@@ -1,0 +1,8 @@
+Error semantico [2:5]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].
+Error semantico [3:4]:
+la variable 'x' ya fue declarada
+en este ambito.
+Declaracion anterior [1:4].

@@ -1,0 +1,14 @@
+Error semantico [1:8]:
+no es posible inicializar una variable
+de tipo 'int' con una expresion de tipo 'bool'.
+Error semantico [2:14]:
+no es posible inicializar una variable
+de tipo 'bool' con una expresion de tipo 'int'.
+Error semantico [4:4]:
+la condicion de una sentencia 'if'
+debe ser de tipo 'bool',
+pero se encontro 'int'.
+Error semantico [5:15]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.

@@ -1,0 +1,22 @@
+AST:
+Program
+  VariableDeclaration(int, x)
+    Integer(10)
+  If
+    Condition
+      Greater
+        Identifier(x)
+        Integer(0)
+    Then
+      If
+        Condition
+          Greater
+            Identifier(x)
+            Integer(5)
+        Then
+          Print
+            Integer(1)
+        Else
+          Print
+            Integer(2)
+Programa sintacticamente correcto.

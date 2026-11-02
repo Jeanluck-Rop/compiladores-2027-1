@@ -1,0 +1,10 @@
+Error semantico [1:6]:
+la variable 'x' no ha sido declarada.
+Error semantico [2:8]:
+la variable 'zz' no ha sido declarada.
+Error semantico [3:10]:
+la variable 'nope' no ha sido declarada.
+Error semantico [4:4]:
+la variable 'ghost' no ha sido declarada.
+Error semantico [7:8]:
+la variable 'phantom' no ha sido declarada.

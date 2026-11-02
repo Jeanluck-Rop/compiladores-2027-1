@@ -1,0 +1,12 @@
+Error semantico [3:6]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'bool' y 'int'.
+Error semantico [4:6]:
+el operador '+' requiere operandos
+de tipo 'int', pero se encontraron
+'int' y 'bool'.
+Error semantico [5:7]:
+el operador '&&' requiere operandos
+de tipo 'bool', pero se encontraron
+'bool' y 'int'.
